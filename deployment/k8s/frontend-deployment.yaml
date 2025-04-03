@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fintrack-frontend
+  labels:
+    app: fintrack-frontend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: fintrack-frontend
+  template:
+    metadata:
+      labels:
+        app: fintrack-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: your-dockerhub-username/fintrack-frontend:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: REACT_APP_API_URL
+          value: "http://fintrack-backend:8080"  # Update with your backend service URL
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "500m"
+          limits:
+            memory: "512Mi"
+            cpu: "1"
+      imagePullSecrets:
+      - name: regcred  # Optional: if using a private Docker registry

@@ -1,0 +1,16 @@
+{
+  "apiVersion": "v1",
+  "kind": "ConfigMap",
+  "metadata": {
+    "name": "fintrack-config",
+    "namespace": "fintrack"
+  },
+  "data": {
+    "DATABASE_URL": "postgresql://username:password@postgres-service:5432/fintrack",
+    "AWS_REGION": "us-west-2",
+    "AWS_ACCESS_KEY_ID": "your_access_key_id",
+    "AWS_SECRET_ACCESS_KEY": "your_secret_access_key",
+    "S3_BUCKET": "fintrack-frontend-bucket",
+    "CLOUD_FRONT_DISTRIBUTION_ID": "your_distribution_id"
+  }
+}

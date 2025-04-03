@@ -1,0 +1,75 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Build') {
+            steps {
+                script {
+                    // Build backend
+                    dir('backend') {
+                        sh 'mvn clean package'
+                    }
+                    // Build frontend
+                    dir('frontend') {
+                        sh 'npm install'
+                        sh 'npm run build'
+                    }
+                    // Build ETL
+                    dir('etl') {
+                        sh 'docker build -t fintrack-etl .'
+                    }
+                }
+            }
+        }
+
+        stage('Dockerize') {
+            steps {
+                script {
+                    // Dockerize backend
+                    dir('backend') {
+                        sh 'docker build -t fintrack-backend .'
+                    }
+                    // Dockerize frontend
+                    dir('frontend') {
+                        sh 'docker build -t fintrack-frontend .'
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to AWS') {
+            steps {
+                script {
+                    // Deploy backend to ECS
+                    sh 'aws ecs update-service --cluster fintrack-cluster --service fintrack-backend-service --force-new-deployment'
+                    // Deploy frontend to S3
+                    sh 'aws s3 sync frontend/build s3://fintrack-frontend-bucket'
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                script {
+                    // Run tests for backend
+                    dir('backend') {
+                        sh 'mvn test'
+                    }
+                    // Run tests for frontend
+                    dir('frontend') {
+                        sh 'npm test'
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+    }
+}

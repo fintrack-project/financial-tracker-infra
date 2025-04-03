@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fintrack-etl
+  labels:
+    app: fintrack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fintrack
+      component: etl
+  template:
+    metadata:
+      labels:
+        app: fintrack
+        component: etl
+    spec:
+      containers:
+      - name: etl
+        image: your-docker-repo/fintrack-etl:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DATABASE_URL
+          value: "jdbc:postgresql://<postgres-service>:5432/fintrack"
+        - name: DATABASE_USER
+          value: "your_db_user"
+        - name: DATABASE_PASSWORD
+          value: "your_db_password"
+        volumeMounts:
+        - name: etl-data
+          mountPath: /data
+      volumes:
+      - name: etl-data
+        emptyDir: {}

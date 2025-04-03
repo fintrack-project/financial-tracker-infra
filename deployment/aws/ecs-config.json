@@ -1,0 +1,66 @@
+{
+  "version": "1.0",
+  "services": {
+    "backend": {
+      "image": "fintrack/backend:latest",
+      "cpu": "256",
+      "memory": "512",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "hostPort": 8080
+        }
+      ],
+      "environment": [
+        {
+          "name": "SPRING_DATASOURCE_URL",
+          "value": "jdbc:postgresql://<RDS_ENDPOINT>:5432/fintrack"
+        },
+        {
+          "name": "SPRING_DATASOURCE_USERNAME",
+          "value": "<DB_USERNAME>"
+        },
+        {
+          "name": "SPRING_DATASOURCE_PASSWORD",
+          "value": "<DB_PASSWORD>"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/fintrack",
+          "awslogs-region": "<AWS_REGION>",
+          "awslogs-stream-prefix": "backend"
+        }
+      }
+    },
+    "frontend": {
+      "image": "fintrack/frontend:latest",
+      "cpu": "256",
+      "memory": "512",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "hostPort": 3000
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/fintrack",
+          "awslogs-region": "<AWS_REGION>",
+          "awslogs-stream-prefix": "frontend"
+        }
+      }
+    }
+  },
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "512",
+  "memory": "1024",
+  "family": "fintrack"
+}

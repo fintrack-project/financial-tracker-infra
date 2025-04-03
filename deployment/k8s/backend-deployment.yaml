@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fintrack-backend
+  labels:
+    app: fintrack
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: fintrack
+  template:
+    metadata:
+      labels:
+        app: fintrack
+    spec:
+      containers:
+      - name: fintrack-backend
+        image: your-docker-repo/fintrack-backend:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:postgresql://postgres-service:5432/fintrack
+        - name: SPRING_DATASOURCE_USERNAME
+          value: your_db_username
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: your_db_password
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1"
+      imagePullSecrets:
+      - name: regcred

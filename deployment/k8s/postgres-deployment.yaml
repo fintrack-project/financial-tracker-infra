@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fintrack-postgres
+  labels:
+    app: fintrack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fintrack
+  template:
+    metadata:
+      labels:
+        app: fintrack
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:latest
+        env:
+        - name: POSTGRES_DB
+          value: fintrack_db
+        - name: POSTGRES_USER
+          value: fintrack_user
+        - name: POSTGRES_PASSWORD
+          value: fintrack_password
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fintrack-postgres
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+  selector:
+    app: fintrack
