@@ -2,12 +2,12 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = ${AWS_REGION} // Set your AWS region
+        AWS_REGION = 'ap-southeast-2' // Set your AWS region
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id') // Add this in Jenkins credentials
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key') // Add this in Jenkins credentials
-        ECR_REPO_BACKEND = 'financial-tracker-backend' // Replace with your ECR repo for backend
-        ECR_REPO_FRONTEND = 'financial-tracker-frontend' // Replace with your ECR repo for frontend
-        ECR_REPO_DATABASE = 'financial-tracker-db' // Replace with your ECR repo for database
+        ECR_REPO_BACKEND = '833233524962.dkr.ecr.ap-southeast-2.amazonaws.com/financial-tracker-backend' // Replace with your ECR repo for backend
+        ECR_REPO_FRONTEND = '833233524962.dkr.ecr.ap-southeast-2.amazonaws.com/financial-tracker-frontend' // Replace with your ECR repo for frontend
+        ECR_REPO_DATABASE = '833233524962.dkr.ecr.ap-southeast-2.amazonaws.com/financial-tracker-db' // Replace with your ECR repo for database
     }
 
     stages {
@@ -34,14 +34,39 @@ pipeline {
         stage('Dockerize') {
             steps {
                 script {
+                    // Authenticate Docker with ECR
+                    sh '''
+                        aws ecr get-login-password --region $AWS_REGION | \
+                        docker login --username AWS --password-stdin 833233524962.dkr.ecr.$AWS_REGION.amazonaws.com
+                    '''
+
                     // Dockerize backend
                     dir('backend') {
-                        sh 'docker build -t fintrack-backend .'
+                        sh 'docker build -t $ECR_REPO_BACKEND:latest .'
                     }
                     // Dockerize frontend
                     dir('frontend') {
-                        sh 'docker build -t fintrack-frontend .'
+                        sh 'docker build -t $ECR_REPO_FRONTEND:latest .'
                     }
+                    // Dockerize database (if needed)
+                    dir('database') {
+                        sh 'docker build -t $ECR_REPO_DATABASE:latest .'
+                    }
+                }
+            }
+        }
+
+        stage('Push Docker Images to ECR') {
+            steps {
+                script {
+                    // Push backend image
+                    sh 'docker push $ECR_REPO_BACKEND:latest'
+
+                    // Push frontend image
+                    sh 'docker push $ECR_REPO_FRONTEND:latest'
+
+                    // Push database image (if needed)
+                    sh 'docker push $ECR_REPO_DATABASE:latest'
                 }
             }
         }
