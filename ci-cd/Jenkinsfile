@@ -44,6 +44,8 @@ pipeline {
                     sh 'aws ecs update-service --cluster fintrack-cluster --service fintrack-backend-service --force-new-deployment'
                     // Deploy frontend to S3
                     sh 'aws s3 sync frontend/build s3://fintrack-frontend-bucket'
+                    // Configure S3 bucket for static website hosting
+                    sh 'aws s3 website s3://fintrack-frontend-bucket --index-document index.html --error-document error.html'
                 }
             }
         }

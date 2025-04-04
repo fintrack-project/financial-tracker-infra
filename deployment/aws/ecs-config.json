@@ -90,10 +90,8 @@
       }
     }
   },
-  "networkMode": "awsvpc",
-  "requiresCompatibilities": [
-    "FARGATE"
-  ],
+  "networkMode": "bridge",
+  "launchType": "EC2",
   "cpu": "512",
   "memory": "1024",
   "family": "fintrack"
