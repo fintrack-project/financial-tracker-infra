@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    ports:
+      - "9090:8080" # Map Jenkins HTTP to port 9090
+      - "50000:50000" # Optional: Only needed for Jenkins agents
+    volumes:
+      - jenkins_home:/var/jenkins_home
+volumes:
+  jenkins_home:

@@ -1,47 +1,7 @@
 {
-  "s3Bucket": {
-    "name": "fintrack-frontend-bucket",
-    "region": "us-east-1",
-    "acl": "public-read",
-    "website": {
-      "indexDocument": "index.html",
-      "errorDocument": "index.html"
-    }
-  },
-  "cloudFront": {
-    "distribution": {
-      "origin": {
-        "s3OriginConfig": {
-          "originAccessIdentity": "origin-access-identity/cloudfront/EXAMPLE"
-        }
-      },
-      "defaultCacheBehavior": {
-        "targetOriginId": "S3Origin",
-        "viewerProtocolPolicy": "redirect-to-https",
-        "allowedMethods": [
-          "GET",
-          "HEAD",
-          "OPTIONS"
-        ],
-        "cachedMethods": [
-          "GET",
-          "HEAD"
-        ],
-        "forwardedValues": {
-          "queryString": false,
-          "cookies": {
-            "forward": "none"
-          }
-        },
-        "minTtl": 0,
-        "defaultTtl": 86400,
-        "maxTtl": 31536000
-      },
-      "enabled": true,
-      "priceClass": "PriceClass_All",
-      "viewerCertificate": {
-        "cloudFrontDefaultCertificate": true
-      }
-    }
-  }
+  "s3Bucket": "financial-tracker-frontend-bucket",
+  "cloudFrontDistributionId": "<CLOUDFRONT_DISTRIBUTION_ID>",
+  "cacheInvalidationPaths": [
+    "/*"
+  ]
 }

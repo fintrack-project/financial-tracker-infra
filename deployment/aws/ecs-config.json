@@ -2,7 +2,7 @@
   "version": "1.0",
   "services": {
     "backend": {
-      "image": "fintrack/backend:latest",
+      "image": "financial-tracker-backend:latest",
       "cpu": "256",
       "memory": "512",
       "essential": true,
@@ -15,28 +15,28 @@
       "environment": [
         {
           "name": "SPRING_DATASOURCE_URL",
-          "value": "jdbc:postgresql://<RDS_ENDPOINT>:5432/fintrack"
+          "value": "jdbc:postgresql://financial-tracker-db:5432/financial_tracker"
         },
         {
           "name": "SPRING_DATASOURCE_USERNAME",
-          "value": "<DB_USERNAME>"
+          "value": "admin"
         },
         {
           "name": "SPRING_DATASOURCE_PASSWORD",
-          "value": "<DB_PASSWORD>"
+          "value": "admin"
         }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/ecs/fintrack",
-          "awslogs-region": "<AWS_REGION>",
+          "awslogs-group": "/ecs/financial-tracker",
+          "awslogs-region": "ap-southeast-2",
           "awslogs-stream-prefix": "backend"
         }
       }
     },
     "frontend": {
-      "image": "fintrack/frontend:latest",
+      "image": "financial-tracker-frontend:latest",
       "cpu": "256",
       "memory": "512",
       "essential": true,
@@ -49,9 +49,43 @@
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/ecs/fintrack",
-          "awslogs-region": "<AWS_REGION>",
+          "awslogs-group": "/ecs/financial-tracker",
+          "awslogs-region": "ap-southeast-2",
           "awslogs-stream-prefix": "frontend"
+        }
+      }
+    },
+    "database": {
+      "image": "postgres:latest",
+      "cpu": "256",
+      "memory": "512",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 5432,
+          "hostPort": 5432
+        }
+      ],
+      "environment": [
+        {
+          "name": "POSTGRES_DB",
+          "value": "fintrack"
+        },
+        {
+          "name": "POSTGRES_USER",
+          "value": "admin"
+        },
+        {
+          "name": "POSTGRES_PASSWORD",
+          "value": "admin"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/financial-tracker",
+          "awslogs-region": "ap-southeast-2",
+          "awslogs-stream-prefix": "database"
         }
       }
     }
