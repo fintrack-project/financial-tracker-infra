@@ -71,25 +71,6 @@ pipeline {
             }
         }
 
-        stage('Dockerize - AWS CLI') {
-            agent {
-                docker {
-                    image 'amazon/aws-cli:2.25.10' // AWS CLI Docker image
-                    args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
-                }
-            }
-            steps {
-                script {
-                    echo 'Authenticating Docker with ECR...'
-                    sh '''
-                        aws ecr get-login-password --region $AWS_REGION | \
-                        docker login --username AWS --password-stdin 833233524962.dkr.ecr.$AWS_REGION.amazonaws.com
-                    '''
-                    echo 'Docker authenticated with ECR.'
-                }
-            }
-        }
-
         stage('Dockerize - Build Images') {
             agent {
                 docker {
@@ -99,13 +80,6 @@ pipeline {
             }
             steps {
                 script {
-                    // Authenticate Docker with ECR
-                    echo 'Authenticating Docker with ECR...'
-                    sh '''
-                        aws ecr get-login-password --region $AWS_REGION | \
-                        docker login --username AWS --password-stdin 833233524962.dkr.ecr.$AWS_REGION.amazonaws.com
-                    '''
-                    echo 'Docker authenticated with ECR.'
 
                     // Dockerize backend
                     dir('backend') {
