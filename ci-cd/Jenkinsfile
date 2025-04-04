@@ -72,6 +72,12 @@ pipeline {
         }
 
         stage('Dockerize') {
+            agent {
+                docker {
+                    image 'amazon/aws-cli:2.25.10' // AWS CLI Docker image
+                    args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
+                }
+            }
             steps {
                 script {
                     // Authenticate Docker with ECR
