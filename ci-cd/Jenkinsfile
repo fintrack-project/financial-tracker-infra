@@ -10,9 +10,10 @@ pipeline {
         AWS_REGION = 'ap-southeast-2' // Set your AWS region
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id') // Add this in Jenkins credentials
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key') // Add this in Jenkins credentials
-        ECR_REPO_BACKEND = '833233524962.dkr.ecr.ap-southeast-2.amazonaws.com/financial-tracker-backend' // Replace with your ECR repo for backend
-        ECR_REPO_FRONTEND = '833233524962.dkr.ecr.ap-southeast-2.amazonaws.com/financial-tracker-frontend' // Replace with your ECR repo for frontend
-        ECR_REPO_DATABASE = '833233524962.dkr.ecr.ap-southeast-2.amazonaws.com/financial-tracker-db' // Replace with your ECR repo for database
+        ECR_REPO_BACKEND = '833233524962.dkr.ecr.ap-southeast-2.amazonaws.com/financial-tracker-backend'
+        ECR_REPO_FRONTEND = '833233524962.dkr.ecr.ap-southeast-2.amazonaws.com/financial-tracker-frontend'
+        ECR_REPO_ETL = '833233524962.dkr.ecr.ap-southeast-2.amazonaws.com/financial-tracker-etl'
+        ECR_REPO_DATABASE = '833233524962.dkr.ecr.ap-southeast-2.amazonaws.com/financial-tracker-db'
     }
 
     stages {
@@ -38,7 +39,14 @@ pipeline {
                     dir('etl') {
                         git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-etl.git'
                     }
-                    echo 'ETL repository cloned.' 
+                    echo 'ETL repository cloned.'
+
+                    // Clone DB repository
+                    echo 'Cloning DB repository...'
+                    dir('database') {
+                        git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-db.git'
+                    }
+                    echo 'DB repository cloned.'  
                 }
             }
         }
@@ -58,12 +66,6 @@ pipeline {
                         sh 'npm install'
                         sh 'npm run build'
                         echo 'Frontend build completed.'
-                    }
-                    // Build ETL
-                    dir('etl') {
-                        echo 'Building ETL...'
-                        sh 'docker build -t fintrack-etl .'
-                        echo 'ETL build completed.'
                     }
                 }
             }
@@ -92,6 +94,12 @@ pipeline {
                         sh 'docker build -t $ECR_REPO_FRONTEND:latest .'
                         echo 'Frontend Dockerized.'
                     }
+                    // Dockerize etl
+                    dir('etl') {
+                        echo 'Dockerizing frontend $ECR_REPO_ETL:latest...'
+                        sh 'docker build -t $ECR_REPO_ETL:latest .'
+                        echo 'ETL Dockerized.'
+                    }
                     // Dockerize database (if needed)
                     dir('database') {
                         echo 'Dockerizing database $ECR_REPO_DATABASE:latest...'
@@ -114,6 +122,11 @@ pipeline {
                     echo 'Pushing frontend image to $ECR_REPO_FRONTEND:latest...'
                     sh 'docker push $ECR_REPO_FRONTEND:latest'
                     echo 'Frontend image pushed.'
+
+                    // Push ETL image
+                    echo 'Pushing ETL image to $ECR_REPO_ETL:latest...'
+                    sh 'docker push $ECR_REPO_ETL:latest'
+                    echo 'ETL image pushed.'
 
                     // Push database image (if needed)
                     echo 'Pushing database image to $ECR_REPO_DATABASE:latest...'
