@@ -15,15 +15,15 @@
       "environment": [
         {
           "name": "SPRING_DATASOURCE_URL",
-          "value": "jdbc:postgresql://financial-tracker-db:5432/financial_tracker"
+          "value": "${spring.datasource.url}"
         },
         {
           "name": "SPRING_DATASOURCE_USERNAME",
-          "value": "admin"
+          "value": "${spring.datasource.username}"
         },
         {
           "name": "SPRING_DATASOURCE_PASSWORD",
-          "value": "admin"
+          "value": "${spring.datasource.password}"
         }
       ],
       "logConfiguration": {

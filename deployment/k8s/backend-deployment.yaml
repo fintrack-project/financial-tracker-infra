@@ -21,11 +21,11 @@ spec:
         - containerPort: 8080
         env:
         - name: SPRING_DATASOURCE_URL
-          value: jdbc:postgresql://postgres-service:5432/fintrack
+          value: ${spring.datasource.url}
         - name: SPRING_DATASOURCE_USERNAME
-          value: your_db_username
+          value: ${spring.datasource.username}
         - name: SPRING_DATASOURCE_PASSWORD
-          value: your_db_password
+          value: ${spring.datasource.password}
         resources:
           requests:
             memory: "512Mi"

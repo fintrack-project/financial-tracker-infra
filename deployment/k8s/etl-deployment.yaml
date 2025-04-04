@@ -22,12 +22,12 @@ spec:
         ports:
         - containerPort: 8080
         env:
-        - name: DATABASE_URL
-          value: "jdbc:postgresql://<postgres-service>:5432/fintrack"
-        - name: DATABASE_USER
-          value: "your_db_user"
-        - name: DATABASE_PASSWORD
-          value: "your_db_password"
+        - name: SPRING_DATASOURCE_URL
+          value: ${spring.datasource.url}
+        - name: SPRING_DATASOURCE_USERNAME
+          value: ${spring.datasource.username}
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: ${spring.datasource.password}
         volumeMounts:
         - name: etl-data
           mountPath: /data

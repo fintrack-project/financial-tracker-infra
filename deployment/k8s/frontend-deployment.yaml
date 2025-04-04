@@ -21,7 +21,7 @@ spec:
         - containerPort: 3000
         env:
         - name: REACT_APP_API_URL
-          value: "http://fintrack-backend:8080"  # Update with your backend service URL
+          value: "http://fintrack-backend:${backend-server.port}"  # Update with your backend service URL
         resources:
           requests:
             memory: "256Mi"

@@ -19,11 +19,11 @@ spec:
         image: postgres:latest
         env:
         - name: POSTGRES_DB
-          value: fintrack_db
+          value: ${spring.datasource.url}
         - name: POSTGRES_USER
-          value: fintrack_user
+          value: ${spring.datasource.username}
         - name: POSTGRES_PASSWORD
-          value: fintrack_password
+          value: ${spring.datasource.password}
         ports:
         - containerPort: 5432
         volumeMounts:

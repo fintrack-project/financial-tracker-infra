@@ -20,11 +20,11 @@ spec:
         - containerPort: 8080
         env:
         - name: SPRING_DATASOURCE_URL
-          value: "jdbc:postgresql://financial-tracker-db:5432/fintrack"
+          value: ${spring.datasource.url}
         - name: SPRING_DATASOURCE_USERNAME
-          value: "admin"
+          value: ${spring.datasource.username}
         - name: SPRING_DATASOURCE_PASSWORD
-          value: "admin"
+          value: ${spring.datasource.password}
 ---
 apiVersion: apps/v1
 kind: Deployment
