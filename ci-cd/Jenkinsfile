@@ -15,6 +15,27 @@ pipeline {
     }
 
     stages {
+        stage('Clone') {
+            steps {
+                script {
+                    // Clone backend repository
+                    echo 'Cloning backend repository...'
+                    git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-backend.git'
+                    echo 'Backend repository cloned.'
+
+                    // Clone frontend repository
+                    echo 'Cloning frontend repository...'
+                    git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-frontend.git'
+                    echo 'Frontend repository cloned.'
+
+                    // Clone ETL repository
+                    echo 'Cloning ETL repository...'
+                    git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-etl.git'
+                    echo 'ETL repository cloned.' 
+                }
+            }
+        }
+
         stage('Build') {
             steps {
                 script {
