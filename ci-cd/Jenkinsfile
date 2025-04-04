@@ -10,14 +10,6 @@ pipeline {
         ECR_REPO_DATABASE = '833233524962.dkr.ecr.ap-southeast-2.amazonaws.com/financial-tracker-db' // Replace with your ECR repo for database
     }
 
-    steps {
-        script {
-            if (!AWS_REGION || !AWS_ACCESS_KEY_ID || !AWS_SECRET_ACCESS_KEY) {
-                error "AWS credentials or region are not set!"
-            }
-        }
-    }
-
     stages {
         stage('Build') {
             steps {
@@ -146,9 +138,6 @@ pipeline {
                 subject: "Jenkins Pipeline Failure: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: "The pipeline failed. Please check the logs."
         }
-    }
-
-    post {
         always {
             script {
                 sh 'docker system prune -f'
