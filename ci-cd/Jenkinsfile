@@ -1,6 +1,7 @@
 pipeline {
     agent {
-        any {
+        node {
+            label 'master'
             customWorkspace '/var/jenkins_home/workspace/FinTrack Pipeline'
         }
     }
