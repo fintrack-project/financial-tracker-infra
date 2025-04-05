@@ -7,8 +7,7 @@ pipeline {
     }
 
     environment {
-        QUAY_USERNAME = credentials('quay-credentials').username // Quay.io robot account username
-        QUAY_PASSWORD = credentials('quay-credentials').password // Quay.io robot account token
+        QUAY_CREDENTAILS = credentials('quay-credentials') // Quay.io robot account credentials
         QUAY_REPO_BACKEND = 'quay.io/johnkim1/financial-tracker-backend'
         QUAY_REPO_FRONTEND = 'quay.io/johnkim1/financial-tracker-frontend'
         QUAY_REPO_ETL = 'quay.io/johnkim1/financial-tracker-etl'
@@ -123,7 +122,7 @@ pipeline {
                     // Login to Quay.io
                     echo 'Logging in to Quay.io...'
                     sh '''
-                        echo $QUAY_PASSWORD | docker login quay.io --username $QUAY_USERNAME --password-stdin
+                        echo $QUAY_CREDENTIALS_PSW | docker login quay.io --username $QUAY_CREDENTIALS_USR --password-stdin
                     '''
 
                     // Push backend image
@@ -140,7 +139,7 @@ pipeline {
                     echo 'Pushing ETL image to $QUAY_REPO_ETL:latest...'
                     sh 'docker push $QUAY_REPO_ETL:latest'
                     echo 'ETL image pushed.'
-                    
+
                     // // Login to AWS ECR
                     // echo 'Logging in to AWS ECR...'
                     // sh '''
