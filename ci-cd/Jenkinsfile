@@ -92,12 +92,20 @@ pipeline {
                     }
                     // Dockerize frontend
                     dir('frontend') {
+                        echo 'Current directory:'
+                        sh 'pwd'
+                        echo 'Contents of the directory:'
+                        sh 'ls -la'
                         echo 'Dockerizing frontend $ECR_REPO_FRONTEND:latest...'
                         sh 'docker build -f Dockerfile -t $ECR_REPO_FRONTEND:latest .'
                         echo 'Frontend Dockerized.'
                     }
                     // Dockerize etl
                     dir('etl') {
+                        echo 'Current directory:'
+                        sh 'pwd'
+                        echo 'Contents of the directory:'
+                        sh 'ls -la'
                         echo 'Dockerizing frontend $ECR_REPO_ETL:latest...'
                         sh 'docker build -f Dockerfile -t $ECR_REPO_ETL:latest .'
                         echo 'ETL Dockerized.'
@@ -213,6 +221,7 @@ pipeline {
         always {
             script {
                 sh 'docker system prune -f'
+                cleanWs() // Cleans up the workspace after the build
             }
         }
     }
