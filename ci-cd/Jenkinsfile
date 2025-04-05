@@ -119,13 +119,13 @@ pipeline {
         stage('Push Docker Images to ECR') {
             steps {
                 script {
-                    // Login to Quay.io
-                    echo 'Logging in to Quay.io...'
-                    echo 'QUAY_CREDENTIALS_USR: $QUAY_CREDENTIALS_USR'
-                    echo 'QUAY_CREDENTIALS_PSW: $QUAY_CREDENTIALS_PSW'
-                    sh '''
-                        echo $QUAY_CREDENTIALS_PSW | docker login quay.io --username $QUAY_CREDENTIALS_USR --password-stdin
-                    '''
+                    // Use withCredentials to securely bind Quay.io credentials
+                    withCredentials([usernamePassword(credentialsId: 'quay-credentials', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD')]) {
+                        echo 'Logging in to Quay.io...'
+                        sh '''
+                            echo $QUAY_PASSWORD | docker login quay.io --username $QUAY_USERNAME --password-stdin
+                        '''
+                    }
 
                     // Push backend image
                     echo 'Pushing backend image to $QUAY_REPO_BACKEND:latest...'
