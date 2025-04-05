@@ -1,6 +1,6 @@
 pipeline {
     agent {
-        node {
+        any {
             customWorkspace '/var/jenkins_home/workspace/FinTrack Pipeline'
         }
     }
