@@ -82,36 +82,6 @@ pipeline {
                         sh 'docker build -t $QUAY_REPO_ETL:latest .'
                         echo 'ETL Dockerized.'
                     }
-                    // // Dockerize backend
-                    // dir('backend') {
-                    //     echo 'Current directory:'
-                    //     sh 'pwd'
-                    //     echo 'Contents of the directory:'
-                    //     sh 'ls -la'
-                    //     echo 'Dockerizing backend $ECR_REPO_BACKEND:latest...'
-                    //     sh 'docker build -f Dockerfile -t $ECR_REPO_BACKEND:latest .'
-                    //     echo 'Backend Dockerized.'
-                    // }
-                    // // Dockerize frontend
-                    // dir('frontend') {
-                    //     echo 'Current directory:'
-                    //     sh 'pwd'
-                    //     echo 'Contents of the directory:'
-                    //     sh 'ls -la'
-                    //     echo 'Dockerizing frontend $ECR_REPO_FRONTEND:latest...'
-                    //     sh 'docker build -f Dockerfile -t $ECR_REPO_FRONTEND:latest .'
-                    //     echo 'Frontend Dockerized.'
-                    // }
-                    // // Dockerize etl
-                    // dir('etl') {
-                    //     echo 'Current directory:'
-                    //     sh 'pwd'
-                    //     echo 'Contents of the directory:'
-                    //     sh 'ls -la'
-                    //     echo 'Dockerizing frontend $ECR_REPO_ETL:latest...'
-                    //     sh 'docker build -f Dockerfile -t $ECR_REPO_ETL:latest .'
-                    //     echo 'ETL Dockerized.'
-                    // }
                 }
             }
         }
@@ -141,90 +111,22 @@ pipeline {
                     echo 'Pushing ETL image to $QUAY_REPO_ETL:latest...'
                     sh 'docker push $QUAY_REPO_ETL:latest'
                     echo 'ETL image pushed.'
-
-                    // // Login to AWS ECR
-                    // echo 'Logging in to AWS ECR...'
-                    // sh '''
-                    //     aws ecr get-login-password --region $AWS_REGION | \
-                    //     docker login --username AWS --password-stdin $ECR_REPO_BACKEND
-                    // '''
-                    // // Push backend image
-                    // echo 'Pushing backend image to $ECR_REPO_BACKEND:latest...'
-                    // sh 'docker push $ECR_REPO_BACKEND:latest'
-                    // echo 'Backend image pushed.'
-
-                    // // Login to AWS ECR for frontend
-                    // echo 'Logging in to AWS ECR for frontend...'
-                    // sh '''
-                    //     aws ecr get-login-password --region $AWS_REGION | \
-                    //     docker login --username AWS --password-stdin $ECR_REPO_FRONTEND
-                    // '''
-                    // // Push frontend image
-                    // echo 'Pushing frontend image to $ECR_REPO_FRONTEND:latest...'
-                    // sh 'docker push $ECR_REPO_FRONTEND:latest'
-                    // echo 'Frontend image pushed.'
-
-                    // // Login to AWS ECR for ETL
-                    // echo 'Logging in to AWS ECR for ETL...'
-                    // sh '''
-                    //     aws ecr get-login-password --region $AWS_REGION | \
-                    //     docker login --username AWS --password-stdin $ECR_REPO_ETL
-                    // '''
-                    // // Push ETL image
-                    // echo 'Pushing ETL image to $ECR_REPO_ETL:latest...'
-                    // sh 'docker push $ECR_REPO_ETL:latest'
-                    // echo 'ETL image pushed.'
                 }
             }
         }
-
-        // stage('Deploy to AWS') {
-        //     steps {
-        //         script {
-        //             // Deploy backend to ECS
-        //             echo 'Deploying backend to AWS ECS...'
-        //             sh 'aws ecs update-service --cluster fintrack-cluster --service fintrack-backend-service --force-new-deployment'
-        //             // Deploy frontend to S3
-        //             echo 'Deploying frontend to AWS S3...'
-        //             sh 'aws s3 sync frontend/build s3://fintrack-frontend-bucket'
-        //             // Configure S3 bucket for static website hosting
-        //             echo 'Configuring S3 bucket for static website hosting...'
-        //             sh 'aws s3 website s3://fintrack-frontend-bucket --index-document index.html --error-document error.html'
-        //         }
-        //     }
-        // }
-
-        // stage('Test') {
-        //     steps {
-        //         script {
-        //             // Run tests for backend
-        //             dir('backend') {
-        //                 echo 'Running backend tests...'
-        //                 sh 'mvn test'
-        //                 echo 'Backend tests completed.'
-        //             }
-        //             // Run tests for frontend
-        //             dir('frontend') {
-        //                 echo 'Running frontend tests...'
-        //                 sh 'npm test'
-        //                 echo 'Frontend tests completed.'
-        //             }
-        //         }
-        //     }
-        // }
     }
 
     post {
-        success {
-            mail to: 'johnkim.work@outlook.com',
-                subject: "Jenkins Pipeline Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "The pipeline completed successfully."
-        }
-        failure {
-            mail to: 'johnkim.work@outlook.com',
-                subject: "Jenkins Pipeline Failure: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "The pipeline failed. Please check the logs."
-        }
+        // success {
+        //     mail to: 'johnkim.work@outlook.com',
+        //         subject: "Jenkins Pipeline Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+        //         body: "The pipeline completed successfully."
+        // }
+        // failure {
+        //     mail to: 'johnkim.work@outlook.com',
+        //         subject: "Jenkins Pipeline Failure: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+        //         body: "The pipeline failed. Please check the logs."
+        // }
         always {
             script {
                 sh 'docker system prune -f'
