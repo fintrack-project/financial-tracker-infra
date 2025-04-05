@@ -1,5 +1,9 @@
 pipeline {
-    agent any
+    agent {
+        node {
+            customWorkspace '/var/jenkins_home/workspace/FinTrack Pipeline'
+        }
+    }
 
     tools {
         maven 'Maven 3.9.9'
@@ -24,6 +28,8 @@ pipeline {
                     echo 'Cloning backend repository...'
                     dir('backend') {
                         git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-backend.git'
+                        echo 'Verifying backend directory contents:'
+                        sh 'ls -la'
                     }
                     echo 'Backend repository cloned.'
 
@@ -31,6 +37,8 @@ pipeline {
                     echo 'Cloning frontend repository...'
                     dir('frontend') {
                         git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-frontend.git'
+                        echo 'Verifying frontend directory contents:'
+                        sh 'ls -la'
                     }
                     echo 'Frontend repository cloned.'
 
@@ -38,6 +46,8 @@ pipeline {
                     echo 'Cloning ETL repository...'
                     dir('etl') {
                         git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-etl.git'
+                        echo 'Verifying ETL directory contents:'
+                        sh 'ls -la'
                     }
                     echo 'ETL repository cloned.'
 
