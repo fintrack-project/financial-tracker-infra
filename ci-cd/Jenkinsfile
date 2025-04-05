@@ -7,13 +7,11 @@ pipeline {
     }
 
     environment {
-        AWS_REGION = 'ap-southeast-2' // Set your AWS region
-        AWS_ACCESS_KEY_ID = credentials('aws-access-key-id') // Add this in Jenkins credentials
-        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key') // Add this in Jenkins credentials
-        ECR_REPO_BACKEND = '833233524962.dkr.ecr.ap-southeast-2.amazonaws.com/financial-tracker-backend'
-        ECR_REPO_FRONTEND = '833233524962.dkr.ecr.ap-southeast-2.amazonaws.com/financial-tracker-frontend'
-        ECR_REPO_ETL = '833233524962.dkr.ecr.ap-southeast-2.amazonaws.com/financial-tracker-etl'
-        ECR_REPO_DATABASE = '833233524962.dkr.ecr.ap-southeast-2.amazonaws.com/financial-tracker-db'
+        QUAY_USERNAME = credentials('quay-credentials').username // Quay.io robot account username
+        QUAY_PASSWORD = credentials('quay-credentials').password // Quay.io robot account token
+        QUAY_REPO_BACKEND = 'quay.io/johnkim1/financial-tracker-backend'
+        QUAY_REPO_FRONTEND = 'quay.io/johnkim1/financial-tracker-frontend'
+        QUAY_REPO_ETL = 'quay.io/johnkim1/financial-tracker-etl'
     }
 
     stages {
@@ -69,34 +67,52 @@ pipeline {
                 script {
                     // Dockerize backend
                     dir('backend') {
-                        echo 'Current directory:'
-                        sh 'pwd'
-                        echo 'Contents of the directory:'
-                        sh 'ls -la'
-                        echo 'Dockerizing backend $ECR_REPO_BACKEND:latest...'
-                        sh 'docker build -f Dockerfile -t $ECR_REPO_BACKEND:latest .'
+                        echo 'Dockerizing backend $QUAY_REPO_BACKEND:latest...'
+                        sh 'docker build -t $QUAY_REPO_BACKEND:latest .'
                         echo 'Backend Dockerized.'
                     }
                     // Dockerize frontend
                     dir('frontend') {
-                        echo 'Current directory:'
-                        sh 'pwd'
-                        echo 'Contents of the directory:'
-                        sh 'ls -la'
-                        echo 'Dockerizing frontend $ECR_REPO_FRONTEND:latest...'
-                        sh 'docker build -f Dockerfile -t $ECR_REPO_FRONTEND:latest .'
+                        echo 'Dockerizing frontend $QUAY_REPO_FRONTEND:latest...'
+                        sh 'docker build -t $QUAY_REPO_FRONTEND:latest .'
                         echo 'Frontend Dockerized.'
                     }
-                    // Dockerize etl
+                    // Dockerize ETL
                     dir('etl') {
-                        echo 'Current directory:'
-                        sh 'pwd'
-                        echo 'Contents of the directory:'
-                        sh 'ls -la'
-                        echo 'Dockerizing frontend $ECR_REPO_ETL:latest...'
-                        sh 'docker build -f Dockerfile -t $ECR_REPO_ETL:latest .'
+                        echo 'Dockerizing ETL $QUAY_REPO_ETL:latest...'
+                        sh 'docker build -t $QUAY_REPO_ETL:latest .'
                         echo 'ETL Dockerized.'
                     }
+                    // // Dockerize backend
+                    // dir('backend') {
+                    //     echo 'Current directory:'
+                    //     sh 'pwd'
+                    //     echo 'Contents of the directory:'
+                    //     sh 'ls -la'
+                    //     echo 'Dockerizing backend $ECR_REPO_BACKEND:latest...'
+                    //     sh 'docker build -f Dockerfile -t $ECR_REPO_BACKEND:latest .'
+                    //     echo 'Backend Dockerized.'
+                    // }
+                    // // Dockerize frontend
+                    // dir('frontend') {
+                    //     echo 'Current directory:'
+                    //     sh 'pwd'
+                    //     echo 'Contents of the directory:'
+                    //     sh 'ls -la'
+                    //     echo 'Dockerizing frontend $ECR_REPO_FRONTEND:latest...'
+                    //     sh 'docker build -f Dockerfile -t $ECR_REPO_FRONTEND:latest .'
+                    //     echo 'Frontend Dockerized.'
+                    // }
+                    // // Dockerize etl
+                    // dir('etl') {
+                    //     echo 'Current directory:'
+                    //     sh 'pwd'
+                    //     echo 'Contents of the directory:'
+                    //     sh 'ls -la'
+                    //     echo 'Dockerizing frontend $ECR_REPO_ETL:latest...'
+                    //     sh 'docker build -f Dockerfile -t $ECR_REPO_ETL:latest .'
+                    //     echo 'ETL Dockerized.'
+                    // }
                 }
             }
         }
@@ -104,76 +120,97 @@ pipeline {
         stage('Push Docker Images to ECR') {
             steps {
                 script {
-                    // Login to AWS ECR
-                    echo 'Logging in to AWS ECR...'
+                    // Login to Quay.io
+                    echo 'Logging in to Quay.io...'
                     sh '''
-                        aws ecr get-login-password --region $AWS_REGION | \
-                        docker login --username AWS --password-stdin $ECR_REPO_BACKEND
+                        echo $QUAY_PASSWORD | docker login quay.io --username $QUAY_USERNAME --password-stdin
                     '''
+
                     // Push backend image
-                    echo 'Pushing backend image to $ECR_REPO_BACKEND:latest...'
-                    sh 'docker push $ECR_REPO_BACKEND:latest'
+                    echo 'Pushing backend image to $QUAY_REPO_BACKEND:latest...'
+                    sh 'docker push $QUAY_REPO_BACKEND:latest'
                     echo 'Backend image pushed.'
 
-                    // Login to AWS ECR for frontend
-                    echo 'Logging in to AWS ECR for frontend...'
-                    sh '''
-                        aws ecr get-login-password --region $AWS_REGION | \
-                        docker login --username AWS --password-stdin $ECR_REPO_FRONTEND
-                    '''
                     // Push frontend image
-                    echo 'Pushing frontend image to $ECR_REPO_FRONTEND:latest...'
-                    sh 'docker push $ECR_REPO_FRONTEND:latest'
+                    echo 'Pushing frontend image to $QUAY_REPO_FRONTEND:latest...'
+                    sh 'docker push $QUAY_REPO_FRONTEND:latest'
                     echo 'Frontend image pushed.'
 
-                    // Login to AWS ECR for ETL
-                    echo 'Logging in to AWS ECR for ETL...'
-                    sh '''
-                        aws ecr get-login-password --region $AWS_REGION | \
-                        docker login --username AWS --password-stdin $ECR_REPO_ETL
-                    '''
                     // Push ETL image
-                    echo 'Pushing ETL image to $ECR_REPO_ETL:latest...'
-                    sh 'docker push $ECR_REPO_ETL:latest'
+                    echo 'Pushing ETL image to $QUAY_REPO_ETL:latest...'
+                    sh 'docker push $QUAY_REPO_ETL:latest'
                     echo 'ETL image pushed.'
+                    
+                    // // Login to AWS ECR
+                    // echo 'Logging in to AWS ECR...'
+                    // sh '''
+                    //     aws ecr get-login-password --region $AWS_REGION | \
+                    //     docker login --username AWS --password-stdin $ECR_REPO_BACKEND
+                    // '''
+                    // // Push backend image
+                    // echo 'Pushing backend image to $ECR_REPO_BACKEND:latest...'
+                    // sh 'docker push $ECR_REPO_BACKEND:latest'
+                    // echo 'Backend image pushed.'
+
+                    // // Login to AWS ECR for frontend
+                    // echo 'Logging in to AWS ECR for frontend...'
+                    // sh '''
+                    //     aws ecr get-login-password --region $AWS_REGION | \
+                    //     docker login --username AWS --password-stdin $ECR_REPO_FRONTEND
+                    // '''
+                    // // Push frontend image
+                    // echo 'Pushing frontend image to $ECR_REPO_FRONTEND:latest...'
+                    // sh 'docker push $ECR_REPO_FRONTEND:latest'
+                    // echo 'Frontend image pushed.'
+
+                    // // Login to AWS ECR for ETL
+                    // echo 'Logging in to AWS ECR for ETL...'
+                    // sh '''
+                    //     aws ecr get-login-password --region $AWS_REGION | \
+                    //     docker login --username AWS --password-stdin $ECR_REPO_ETL
+                    // '''
+                    // // Push ETL image
+                    // echo 'Pushing ETL image to $ECR_REPO_ETL:latest...'
+                    // sh 'docker push $ECR_REPO_ETL:latest'
+                    // echo 'ETL image pushed.'
                 }
             }
         }
 
-        stage('Deploy to AWS') {
-            steps {
-                script {
-                    // Deploy backend to ECS
-                    echo 'Deploying backend to AWS ECS...'
-                    sh 'aws ecs update-service --cluster fintrack-cluster --service fintrack-backend-service --force-new-deployment'
-                    // Deploy frontend to S3
-                    echo 'Deploying frontend to AWS S3...'
-                    sh 'aws s3 sync frontend/build s3://fintrack-frontend-bucket'
-                    // Configure S3 bucket for static website hosting
-                    echo 'Configuring S3 bucket for static website hosting...'
-                    sh 'aws s3 website s3://fintrack-frontend-bucket --index-document index.html --error-document error.html'
-                }
-            }
-        }
+        // stage('Deploy to AWS') {
+        //     steps {
+        //         script {
+        //             // Deploy backend to ECS
+        //             echo 'Deploying backend to AWS ECS...'
+        //             sh 'aws ecs update-service --cluster fintrack-cluster --service fintrack-backend-service --force-new-deployment'
+        //             // Deploy frontend to S3
+        //             echo 'Deploying frontend to AWS S3...'
+        //             sh 'aws s3 sync frontend/build s3://fintrack-frontend-bucket'
+        //             // Configure S3 bucket for static website hosting
+        //             echo 'Configuring S3 bucket for static website hosting...'
+        //             sh 'aws s3 website s3://fintrack-frontend-bucket --index-document index.html --error-document error.html'
+        //         }
+        //     }
+        // }
 
-        stage('Test') {
-            steps {
-                script {
-                    // Run tests for backend
-                    dir('backend') {
-                        echo 'Running backend tests...'
-                        sh 'mvn test'
-                        echo 'Backend tests completed.'
-                    }
-                    // Run tests for frontend
-                    dir('frontend') {
-                        echo 'Running frontend tests...'
-                        sh 'npm test'
-                        echo 'Frontend tests completed.'
-                    }
-                }
-            }
-        }
+        // stage('Test') {
+        //     steps {
+        //         script {
+        //             // Run tests for backend
+        //             dir('backend') {
+        //                 echo 'Running backend tests...'
+        //                 sh 'mvn test'
+        //                 echo 'Backend tests completed.'
+        //             }
+        //             // Run tests for frontend
+        //             dir('frontend') {
+        //                 echo 'Running frontend tests...'
+        //                 sh 'npm test'
+        //                 echo 'Frontend tests completed.'
+        //             }
+        //         }
+        //     }
+        // }
     }
 
     post {
