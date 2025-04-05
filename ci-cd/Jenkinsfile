@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        node {
-            label 'master' // Replace 'master' with the appropriate label for your Jenkins agent
-            customWorkspace '/var/jenkins_home/workspace/FinTrack Pipeline'
-        }
-    }
+    agent any
 
     tools {
         maven 'Maven 3.9.9'
@@ -58,6 +53,23 @@ pipeline {
                     //     git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-db.git'
                     // }
                     // echo 'DB repository cloned.'  
+                }
+            }
+        }
+
+        stage('Verify Workspace') {
+            steps {
+                script {
+                    echo 'Current workspace:'
+                    sh 'pwd'
+                    echo 'Workspace contents:'
+                    sh 'ls -la'
+                    echo 'Contents of the backend directory:'
+                    sh 'ls -la backend'
+                    echo 'Contents of the frontend directory:'
+                    sh 'ls -la frontend'
+                    echo 'Contents of the ETL directory:'
+                    sh 'ls -la etl'
                 }
             }
         }
