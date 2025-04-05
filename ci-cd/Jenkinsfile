@@ -41,12 +41,12 @@ pipeline {
                     }
                     echo 'ETL repository cloned.'
 
-                    // Clone DB repository
-                    echo 'Cloning DB repository...'
-                    dir('database') {
-                        git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-db.git'
-                    }
-                    echo 'DB repository cloned.'  
+                    // // Clone DB repository
+                    // echo 'Cloning DB repository...'
+                    // dir('database') {
+                    //     git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-db.git'
+                    // }
+                    // echo 'DB repository cloned.'  
                 }
             }
         }
@@ -80,31 +80,30 @@ pipeline {
             }
             steps {
                 script {
-
                     // Dockerize backend
                     dir('backend') {
                         echo 'Dockerizing backend $ECR_REPO_BACKEND:latest...'
-                        sh 'docker build -t $ECR_REPO_BACKEND:latest .'
+                        sh 'docker build -f Dockerfile -t $ECR_REPO_BACKEND:latest .'
                         echo 'Backend Dockerized.'
                     }
                     // Dockerize frontend
                     dir('frontend') {
                         echo 'Dockerizing frontend $ECR_REPO_FRONTEND:latest...'
-                        sh 'docker build -t $ECR_REPO_FRONTEND:latest .'
+                        sh 'docker build -f Dockerfile -t $ECR_REPO_FRONTEND:latest .'
                         echo 'Frontend Dockerized.'
                     }
                     // Dockerize etl
                     dir('etl') {
                         echo 'Dockerizing frontend $ECR_REPO_ETL:latest...'
-                        sh 'docker build -t $ECR_REPO_ETL:latest .'
+                        sh 'docker build -f Dockerfile -t $ECR_REPO_ETL:latest .'
                         echo 'ETL Dockerized.'
                     }
-                    // Dockerize database (if needed)
-                    dir('database') {
-                        echo 'Dockerizing database $ECR_REPO_DATABASE:latest...'
-                        sh 'docker build -t $ECR_REPO_DATABASE:latest .'
-                        echo 'Database Dockerized.'
-                    }
+                    // // Dockerize database (if needed)
+                    // dir('database') {
+                    //     echo 'Dockerizing database $ECR_REPO_DATABASE:latest...'
+                    //     sh 'docker build -f Dockerfile -t $ECR_REPO_DATABASE:latest .'
+                    //     echo 'Database Dockerized.'
+                    // }
                 }
             }
         }
@@ -112,25 +111,50 @@ pipeline {
         stage('Push Docker Images to ECR') {
             steps {
                 script {
+                    // Login to AWS ECR
+                    echo 'Logging in to AWS ECR...'
+                    sh '''
+                        aws ecr get-login-password --region $AWS_REGION | \
+                        docker login --username AWS --password-stdin $ECR_REPO_BACKEND
+                    '''
                     // Push backend image
                     echo 'Pushing backend image to $ECR_REPO_BACKEND:latest...'
                     sh 'docker push $ECR_REPO_BACKEND:latest'
                     echo 'Backend image pushed.'
 
+                    // Login to AWS ECR for frontend
+                    echo 'Logging in to AWS ECR for frontend...'
+                    sh '''
+                        aws ecr get-login-password --region $AWS_REGION | \
+                        docker login --username AWS --password-stdin $ECR_REPO_FRONTEND
+                    '''
                     // Push frontend image
                     echo 'Pushing frontend image to $ECR_REPO_FRONTEND:latest...'
                     sh 'docker push $ECR_REPO_FRONTEND:latest'
                     echo 'Frontend image pushed.'
 
+                    // Login to AWS ECR for ETL
+                    echo 'Logging in to AWS ECR for ETL...'
+                    sh '''
+                        aws ecr get-login-password --region $AWS_REGION | \
+                        docker login --username AWS --password-stdin $ECR_REPO_ETL
+                    '''
                     // Push ETL image
                     echo 'Pushing ETL image to $ECR_REPO_ETL:latest...'
                     sh 'docker push $ECR_REPO_ETL:latest'
                     echo 'ETL image pushed.'
 
-                    // Push database image (if needed)
-                    echo 'Pushing database image to $ECR_REPO_DATABASE:latest...'
-                    sh 'docker push $ECR_REPO_DATABASE:latest'
-                    echo 'Database image pushed.'
+                    // // Login to AWS ECR for database
+                    // echo 'Logging in to AWS ECR for database...'
+                    // sh '''
+                    //     aws ecr get-login-password --region $AWS_REGION | \
+                    //     docker login --username AWS --password-stdin $ECR_REPO_DATABASE
+                    // '''
+
+                    // // Push database image (if needed)
+                    // echo 'Pushing database image to $ECR_REPO_DATABASE:latest...'
+                    // sh 'docker push $ECR_REPO_DATABASE:latest'
+                    // echo 'Database image pushed.'
                 }
             }
         }
