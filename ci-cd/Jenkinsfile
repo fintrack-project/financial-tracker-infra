@@ -121,6 +121,8 @@ pipeline {
                 script {
                     // Login to Quay.io
                     echo 'Logging in to Quay.io...'
+                    echo 'QUAY_CREDENTIALS_USR: $QUAY_CREDENTIALS_USR'
+                    echo 'QUAY_CREDENTIALS_PSW: $QUAY_CREDENTIALS_PSW'
                     sh '''
                         echo $QUAY_CREDENTIALS_PSW | docker login quay.io --username $QUAY_CREDENTIALS_USR --password-stdin
                     '''
