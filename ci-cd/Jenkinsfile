@@ -82,6 +82,10 @@ pipeline {
                 script {
                     // Dockerize backend
                     dir('backend') {
+                        echo 'Current directory:'
+                        sh 'pwd'
+                        echo 'Contents of the directory:'
+                        sh 'ls -la'
                         echo 'Dockerizing backend $ECR_REPO_BACKEND:latest...'
                         sh 'docker build -f Dockerfile -t $ECR_REPO_BACKEND:latest .'
                         echo 'Backend Dockerized.'
