@@ -95,12 +95,12 @@ pipeline {
         }
 
         stage('Dockerize - Build Images') {
-            agent {
-                docker {
-                    image 'docker:20.10.24' // Use a Docker image with Docker CLI pre-installed
-                    args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
-                }
-            }
+            // agent {
+            //     docker {
+            //         image 'docker:20.10.24' // Use a Docker image with Docker CLI pre-installed
+            //         args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
+            //     }
+            // }
             steps {
                 script {
                     // Dockerize backend
