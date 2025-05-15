@@ -21,7 +21,10 @@ pipeline {
         DATABASE_PASSWORD = credentials('database-password')
         AWS_ACCESS_KEY_ID = credentials('aws-access-key')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
-        AWS_REGION = credentials('aws-region')
+        AWS_REGION = 'ap-southeast-2'
+        DOCKER_REGISTRY = 'quay.io'
+        DOCKER_IMAGE_NAME = 'fintrack-project/financial-tracker'
+        DOCKER_IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
     stages {
@@ -112,10 +115,12 @@ pipeline {
             steps {
                 script {
                     // Use withCredentials to securely bind Quay.io credentials
-                    withCredentials([usernamePassword(credentialsId: 'quay-credentials', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD')]) {
+                    withCredentials([usernamePassword(credentialsId: 'quay-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                         echo 'Logging in to Quay.io...'
                         sh '''
-                            echo $QUAY_PASSWORD | docker login quay.io --username $QUAY_USERNAME --password-stdin
+                            echo "${DOCKER_PASSWORD}" | docker login ${DOCKER_REGISTRY} -u ${DOCKER_USERNAME} --password-stdin
+                            docker build -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} -f ci-cd/Dockerfile .
+                            docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
                         '''
                     }
 
@@ -150,9 +155,14 @@ pipeline {
         //         body: "The pipeline failed. Please check the logs."
         // }
         always {
-            script {
-                sh 'docker system prune -f'
-                deleteDir()  // Use deleteDir() instead of cleanWs()
+            node {
+                script {
+                    try {
+                        sh 'docker logout ${DOCKER_REGISTRY}'
+                    } catch (Exception e) {
+                        echo "Error during cleanup: ${e.message}"
+                    }
+                }
             }
         }
     }
