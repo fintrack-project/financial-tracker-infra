@@ -156,11 +156,14 @@ pipeline {
         //         body: "The pipeline failed. Please check the logs."
         // }
         always {
-            script {
-                try {
-                    sh 'docker logout ${DOCKER_REGISTRY} || true'
-                } catch (Exception e) {
-                    echo "Error during cleanup: ${e.message}"
+            agent any
+            steps {
+                script {
+                    try {
+                        sh 'docker logout ${DOCKER_REGISTRY} || true'
+                    } catch (Exception e) {
+                        echo "Error during cleanup: ${e.message}"
+                    }
                 }
             }
         }
