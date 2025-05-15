@@ -86,7 +86,7 @@ pipeline {
             }
         }
 
-        stage('Push Docker Images to ECR') {
+        stage('Push Docker Images to Quay') {
             steps {
                 script {
                     // Use withCredentials to securely bind Quay.io credentials
@@ -130,7 +130,6 @@ pipeline {
         always {
             script {
                 sh 'docker system prune -f'
-                cleanWs() // Cleans up the workspace after the build
             }
         }
     }
