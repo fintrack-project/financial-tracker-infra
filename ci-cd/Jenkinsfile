@@ -4,7 +4,28 @@ pipeline {
     stages {
         stage('Clone') {
             steps {
-                checkout scm
+                script {
+                    // Clone backend repository
+                    echo 'Cloning backend repository...'
+                    dir('backend') {
+                        git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-backend.git'
+                    }
+                    echo 'Backend repository cloned.'
+
+                    // Clone frontend repository
+                    echo 'Cloning frontend repository...'
+                    dir('frontend') {
+                        git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-frontend.git'
+                    }
+                    echo 'Frontend repository cloned.'
+
+                    // Clone ETL repository
+                    echo 'Cloning ETL repository...'
+                    dir('etl') {
+                        git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-etl.git'
+                    }
+                    echo 'ETL repository cloned.'
+                }
             }
         }
 
