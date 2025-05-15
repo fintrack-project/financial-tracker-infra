@@ -9,11 +9,11 @@ services:
       - "50000:50000" # Optional: Only needed for Jenkins agents
     volumes:
       - jenkins_home:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock # Mount Docker socket for Jenkins to use Docker
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
       - JENKINS_OPTS=--httpPort=8080
     restart: unless-stopped
-    user: root # Run Jenkins as root to access Docker
+    privileged: true # Required for Docker-in-Docker
 volumes:
   jenkins_home:

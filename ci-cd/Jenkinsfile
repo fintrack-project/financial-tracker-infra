@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        JAVA_HOME = '/opt/jdk-18'
+        JAVA_HOME = '/opt/jdk-21'
         PATH = "${JAVA_HOME}/bin:${env.PATH}"
     }
 
@@ -68,7 +68,7 @@ pipeline {
                         echo 'Checking pom.xml content:'
                         sh 'cat pom.xml | grep -A 5 "<properties>"'
                         echo 'Building with Maven...'
-                        sh 'mvn clean package -Dmaven.compiler.source=18 -Dmaven.compiler.target=18 -Dmaven.compiler.release=18'
+                        sh 'mvn clean package -Dmaven.compiler.source=21 -Dmaven.compiler.target=21 -Dmaven.compiler.release=21'
                         echo 'Backend build completed.'
                     }
                     // Build frontend

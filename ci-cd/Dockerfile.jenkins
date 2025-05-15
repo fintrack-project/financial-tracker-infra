@@ -2,23 +2,24 @@ FROM jenkins/jenkins:lts
 
 USER root
 
-# Install required packages
+# Install only essential packages
 RUN apt-get update && apt-get install -y \
     apt-transport-https \
     ca-certificates \
     curl \
     gnupg \
     lsb-release \
-    software-properties-common \
+    wget \
+    tar \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Java 18
-RUN apt-get update && apt-get install -y wget \
-    && wget https://download.java.net/java/GA/jdk18/43f95e8614114aeaa8e8a5fcf20a682d/36/GPL/openjdk-18_linux-x64_bin.tar.gz \
-    && tar -xzf openjdk-18_linux-x64_bin.tar.gz -C /opt \
-    && rm openjdk-18_linux-x64_bin.tar.gz
+# Install Eclipse Temurin (Adoptium) JDK 21 (ARM64)
+RUN wget -O /tmp/OpenJDK21.tar.gz https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.7+6/OpenJDK21U-jdk_aarch64_linux_hotspot_21.0.7_6.tar.gz \
+    && mkdir -p /opt/jdk-21 \
+    && tar -xzf /tmp/OpenJDK21.tar.gz --strip-components=1 -C /opt/jdk-21 \
+    && rm /tmp/OpenJDK21.tar.gz
 
-# Install Docker
+# Install Docker (required for Docker-in-Docker)
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
     && apt-get update \
@@ -26,36 +27,13 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
     && rm -rf /var/lib/apt/lists/*
 
 # Install Maven
-RUN curl -fsSL https://dlcdn.apache.org/maven/maven-3/3.9.9/binaries/apache-maven-3.9.9-bin.tar.gz | tar xzf - -C /opt \
-    && ln -s /opt/apache-maven-3.9.9 /opt/maven \
-    && ln -s /opt/maven/bin/mvn /usr/local/bin/mvn
+RUN apt-get update && apt-get install -y maven \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install NodeJS 18.x with compatible npm version
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g npm@10.8.2
-
-# Install Python 3.9 and dependencies
-RUN apt-get update && apt-get install -y \
-    python3.9 \
-    python3.9-dev \
-    python3-pip \
-    gcc \
-    libpq-dev \
-    cron \
-    supervisor \
-    && rm -rf /var/lib/apt/lists/* \
-    && ln -s /usr/bin/python3.9 /usr/bin/python3 \
-    && ln -s /usr/bin/python3 /usr/bin/python \
-    && python3 -m pip install --upgrade pip \
-    && python3 -m pip install virtualenv
-
-# Set environment variables
-ENV MAVEN_HOME=/opt/maven
-ENV PATH=$MAVEN_HOME/bin:$PATH
-ENV JAVA_HOME=/opt/jdk-18
-ENV PATH=$JAVA_HOME/bin:$PATH
-ENV PYTHONPATH=/usr/local/lib/python3.9/site-packages
+# Set proper permissions for Jenkins home directory
+RUN mkdir -p /var/jenkins_home \
+    && chown -R jenkins:jenkins /var/jenkins_home \
+    && chmod 777 /var/jenkins_home
 
 # Switch back to jenkins user
 USER jenkins
@@ -68,7 +46,11 @@ RUN jenkins-plugin-cli --plugins \
     docker-workflow:latest \
     pipeline-model-definition:latest \
     pipeline-stage-view:latest \
-    blueocean:latest
+    blueocean:latest \
+    maven-plugin:latest \
+    nodejs:latest \
+    python:latest \
+    jdk-tool:latest
 
 # Expose Jenkins port
 EXPOSE 8080
