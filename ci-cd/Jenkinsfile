@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven 3.9.9'
+        nodejs 'NodeJS 18.16.0'
+    }
+
     stages {
         stage('Clone') {
             steps {
@@ -31,7 +36,28 @@ pipeline {
 
         stage('Build') {
             steps {
-                echo 'Building...'
+                script {
+                    // Build backend
+                    dir('backend') {
+                        echo 'Building backend...'
+                        sh 'mvn clean package -Dmaven.compiler.source=18 -Dmaven.compiler.target=18'
+                        echo 'Backend build completed.'
+                    }
+                    // Build frontend
+                    dir('frontend') {
+                        echo 'Building frontend...'
+                        sh 'npm install'
+                        sh 'npm run build'
+                        echo 'Frontend build completed.'
+                    }
+                    // Setup ETL
+                    dir('etl') {
+                        echo 'Setting up ETL environment...'
+                        sh 'python3 -m venv venv'
+                        sh '. venv/bin/activate && pip install -r requirements.txt'
+                        echo 'ETL setup completed.'
+                    }
+                }
             }
         }
 
