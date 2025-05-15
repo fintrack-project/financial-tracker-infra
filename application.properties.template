@@ -1,0 +1,18 @@
+# Database Configuration
+spring.datasource.url=jdbc:postgresql://localhost:5432/financial_tracker
+spring.datasource.username=admin
+spring.datasource.password=admin
+
+# Server Configuration
+frontend-server.port=3000
+backend-server.port=8080
+postgresql-server.port=5432
+
+# AWS Configuration
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+AWS_REGION=ap-southeast-2
+
+# Quay.io Configuration
+quay.io.robotaccount.username=your_quay_username
+quay.io.robotaccount.password=your_quay_password

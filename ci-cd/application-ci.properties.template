@@ -1,0 +1,27 @@
+# Database Configuration
+spring.datasource.url=jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}
+spring.datasource.username=${DATABASE_USER}
+spring.datasource.password=${DATABASE_PASSWORD}
+
+# Server Configuration
+frontend-server.port=3000
+backend-server.port=8080
+postgresql-server.port=5432
+
+# AWS Configuration
+AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+AWS_REGION=${AWS_REGION}
+
+# Quay.io Configuration
+quay.io.robotaccount.username=${QUAY_USERNAME}
+quay.io.robotaccount.password=${QUAY_PASSWORD}
+
+# Kafka Configuration
+spring.kafka.bootstrap-servers=kafka:9093
+spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer
+spring.kafka.producer.value-serializer=org.apache.kafka.common.serialization.StringSerializer
+spring.kafka.consumer.group-id=financial-tracker-group
+spring.kafka.consumer.auto-offset-reset=earliest
+spring.kafka.consumer.key-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+spring.kafka.consumer.value-deserializer=org.apache.kafka.common.serialization.StringDeserializer 
