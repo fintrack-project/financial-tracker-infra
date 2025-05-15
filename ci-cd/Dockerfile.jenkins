@@ -20,10 +20,10 @@ RUN wget -O /tmp/OpenJDK21.tar.gz https://github.com/adoptium/temurin21-binaries
     && tar -xzf /tmp/OpenJDK21.tar.gz --strip-components=1 -C /opt/jdk-21 \
     && rm /tmp/OpenJDK21.tar.gz
 
-# Install Node.js
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+# Install Node.js 18.x
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
     && apt-get install -y nodejs \
-    && npm install -g npm@latest
+    && npm install -g npm@8.19.4
 
 # Install Docker (required for Docker-in-Docker)
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
