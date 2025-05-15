@@ -155,7 +155,7 @@ pipeline {
         //         body: "The pipeline failed. Please check the logs."
         // }
         always {
-            node {
+            node('any') {
                 script {
                     try {
                         sh 'docker logout ${DOCKER_REGISTRY}'
