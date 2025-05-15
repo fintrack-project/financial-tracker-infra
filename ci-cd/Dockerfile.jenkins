@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     lsb-release \
     wget \
     tar \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Eclipse Temurin (Adoptium) JDK 21 (ARM64)
@@ -18,6 +19,11 @@ RUN wget -O /tmp/OpenJDK21.tar.gz https://github.com/adoptium/temurin21-binaries
     && mkdir -p /opt/jdk-21 \
     && tar -xzf /tmp/OpenJDK21.tar.gz --strip-components=1 -C /opt/jdk-21 \
     && rm /tmp/OpenJDK21.tar.gz
+
+# Install Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g npm@latest
 
 # Install Docker (required for Docker-in-Docker)
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
@@ -50,7 +56,14 @@ RUN jenkins-plugin-cli --plugins \
     maven-plugin:latest \
     nodejs:latest \
     python:latest \
-    jdk-tool:latest
+    jdk-tool:latest \
+    git-parameter:latest \
+    credentials-binding:latest \
+    ssh-agent:latest
+
+# Set environment variables
+ENV JAVA_HOME=/opt/jdk-21
+ENV PATH=$JAVA_HOME/bin:$PATH
 
 # Expose Jenkins port
 EXPOSE 8080
