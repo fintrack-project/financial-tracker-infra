@@ -1,150 +1,28 @@
 pipeline {
     agent any
 
-    tools {
-        maven 'Maven 3.9.9'
-        nodejs 'NodeJS 18.16.0'
-    }
-
-    environment {
-        QUAY_CREDENTAILS = credentials('quay-credentials')
-        QUAY_REPO_BACKEND = 'quay.io/johnkim1/financial-tracker-backend'
-        QUAY_REPO_FRONTEND = 'quay.io/johnkim1/financial-tracker-frontend'
-        QUAY_REPO_ETL = 'quay.io/johnkim1/financial-tracker-etl'
-        JAVA_HOME = '/opt/jdk-18'
-        KAFKA_BOOTSTRAP_SERVERS = 'kafka:9093'
-        ZOOKEEPER_HOST = 'zookeeper:2181'
-        // Temporarily comment out database credentials until they are set up
-        // DATABASE_HOST = credentials('database-host')
-        // DATABASE_PORT = credentials('database-port')
-        // DATABASE_NAME = credentials('database-name')
-        // DATABASE_USER = credentials('database-user')
-        // DATABASE_PASSWORD = credentials('database-password')
-        AWS_ACCESS_KEY_ID = credentials('aws-access-key')
-        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
-        AWS_REGION = 'ap-southeast-2'
-        DOCKER_REGISTRY = 'quay.io'
-        DOCKER_IMAGE_NAME = 'fintrack-project/financial-tracker'
-        DOCKER_IMAGE_TAG = "${BUILD_NUMBER}"
-    }
-
     stages {
         stage('Clone') {
             steps {
-                script {
-                    // Clone backend repository
-                    echo 'Cloning backend repository...'
-                    dir('backend') {
-                        git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-backend.git'
-                        // Copy CI properties file
-                        sh 'cp ../application-ci.properties src/main/resources/application.properties'
-                    }
-                    echo 'Backend repository cloned.'
-
-                    // Clone frontend repository
-                    echo 'Cloning frontend repository...'
-                    dir('frontend') {
-                        git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-frontend.git'
-                    }
-                    echo 'Frontend repository cloned.'
-
-                    // Clone ETL repository
-                    echo 'Cloning ETL repository...'
-                    dir('etl') {
-                        git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-etl.git'
-                        // Copy CI properties file
-                        sh 'cp ../application-ci.properties config/application.properties'
-                    }
-                    echo 'ETL repository cloned.'
-                }
+                checkout scm
             }
         }
 
         stage('Build') {
             steps {
-                script {
-                    // Build backend
-                    dir('backend') {
-                        echo 'Building backend...'
-                        sh 'mvn clean package -Dmaven.compiler.source=18 -Dmaven.compiler.target=18'
-                        echo 'Backend build completed.'
-                    }
-                    // Build frontend
-                    dir('frontend') {
-                        echo 'Building frontend...'
-                        sh 'npm install'
-                        sh 'npm run build'
-                        echo 'Frontend build completed.'
-                    }
-                    // Setup ETL
-                    dir('etl') {
-                        echo 'Setting up ETL environment...'
-                        sh 'python3 -m venv venv'
-                        sh '. venv/bin/activate && pip install -r requirements.txt'
-                        echo 'ETL setup completed.'
-                    }
-                }
+                echo 'Building...'
             }
         }
 
-        stage('Dockerize - Build Images') {
+        stage('Test') {
             steps {
-                script {
-                    // Dockerize backend
-                    dir('backend') {
-                        echo 'Dockerizing backend $QUAY_REPO_BACKEND:latest...'
-                        sh 'docker build -t $QUAY_REPO_BACKEND:latest .'
-                        echo 'Backend Dockerized.'
-                    }
-                    // Dockerize frontend
-                    dir('frontend') {
-                        echo 'Dockerizing frontend $QUAY_REPO_FRONTEND:latest...'
-                        sh 'docker build -t $QUAY_REPO_FRONTEND:latest .'
-                        echo 'Frontend Dockerized.'
-                    }
-                    // Dockerize ETL
-                    dir('etl') {
-                        echo 'Dockerizing ETL $QUAY_REPO_ETL:latest...'
-                        sh 'docker build -t $QUAY_REPO_ETL:latest .'
-                        echo 'ETL Dockerized.'
-                    }
-                }
+                echo 'Testing...'
             }
         }
 
-        stage('Push Docker Images to Quay') {
+        stage('Deploy') {
             steps {
-                script {
-                    // Use withCredentials to securely bind Quay.io credentials
-                    withCredentials([usernamePassword(credentialsId: 'quay-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        echo 'Logging in to Quay.io...'
-                        sh '''
-                            echo "${DOCKER_PASSWORD}" | docker login ${DOCKER_REGISTRY} -u ${DOCKER_USERNAME} --password-stdin
-                            docker build -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} -f ci-cd/Dockerfile .
-                            docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
-                        '''
-                    }
-
-                    // Push backend image
-                    echo 'Pushing backend image to $QUAY_REPO_BACKEND:latest...'
-                    sh 'docker push $QUAY_REPO_BACKEND:latest'
-                    echo 'Backend image pushed.'
-
-                    // Push frontend image
-                    echo 'Pushing frontend image to $QUAY_REPO_FRONTEND:latest...'
-                    sh 'docker push $QUAY_REPO_FRONTEND:latest'
-                    echo 'Frontend image pushed.'
-
-                    // Push ETL image
-                    echo 'Pushing ETL image to $QUAY_REPO_ETL:latest...'
-                    sh 'docker push $QUAY_REPO_ETL:latest'
-                    echo 'ETL image pushed.'
-
-                    // Cleanup
-                    echo 'Cleaning up...'
-                    sh 'docker logout ${DOCKER_REGISTRY} || true'
-                    echo 'Cleanup completed.'
-                }
+                echo 'Deploying...'
             }
         }
     }
