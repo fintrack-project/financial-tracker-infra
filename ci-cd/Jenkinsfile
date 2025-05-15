@@ -14,11 +14,12 @@ pipeline {
         JAVA_HOME = '/opt/jdk-18'
         KAFKA_BOOTSTRAP_SERVERS = 'kafka:9093'
         ZOOKEEPER_HOST = 'zookeeper:2181'
-        DATABASE_HOST = credentials('database-host')
-        DATABASE_PORT = credentials('database-port')
-        DATABASE_NAME = credentials('database-name')
-        DATABASE_USER = credentials('database-user')
-        DATABASE_PASSWORD = credentials('database-password')
+        // Temporarily comment out database credentials until they are set up
+        // DATABASE_HOST = credentials('database-host')
+        // DATABASE_PORT = credentials('database-port')
+        // DATABASE_NAME = credentials('database-name')
+        // DATABASE_USER = credentials('database-user')
+        // DATABASE_PASSWORD = credentials('database-password')
         AWS_ACCESS_KEY_ID = credentials('aws-access-key')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
         AWS_REGION = 'ap-southeast-2'
@@ -155,11 +156,13 @@ pipeline {
         //         body: "The pipeline failed. Please check the logs."
         // }
         always {
-            script {
-                try {
-                    sh 'docker logout ${DOCKER_REGISTRY}'
-                } catch (Exception e) {
-                    echo "Error during cleanup: ${e.message}"
+            node {
+                script {
+                    try {
+                        sh 'docker logout ${DOCKER_REGISTRY}'
+                    } catch (Exception e) {
+                        echo "Error during cleanup: ${e.message}"
+                    }
                 }
             }
         }
