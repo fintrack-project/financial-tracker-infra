@@ -32,23 +32,59 @@ pipeline {
         stage('Build') {
             steps {
                 script {
+                    // Log environment information
+                    echo '=== Environment Information ==='
+                    sh '''
+                        echo "Java Version:"
+                        java -version
+                        echo "\nMaven Version:"
+                        mvn -version
+                        echo "\nNode Version:"
+                        node -v
+                        echo "\nNPM Version:"
+                        npm -v
+                        echo "\nPython Version:"
+                        python3 --version
+                        echo "\nCurrent Directory:"
+                        pwd
+                        echo "\nDirectory Contents:"
+                        ls -la
+                    '''
+                    
                     // Build backend
                     dir('backend') {
-                        echo 'Building backend...'
-                        sh 'mvn clean package -Dmaven.compiler.source=18 -Dmaven.compiler.target=18'
+                        echo '=== Building Backend ==='
+                        echo 'Current Directory:'
+                        sh 'pwd'
+                        echo 'Directory Contents:'
+                        sh 'ls -la'
+                        echo 'Building with Maven...'
+                        sh 'mvn clean package -Dmaven.compiler.source=17 -Dmaven.compiler.target=17'
                         echo 'Backend build completed.'
                     }
                     // Build frontend
                     dir('frontend') {
-                        echo 'Building frontend...'
+                        echo '=== Building Frontend ==='
+                        echo 'Current Directory:'
+                        sh 'pwd'
+                        echo 'Directory Contents:'
+                        sh 'ls -la'
+                        echo 'Installing dependencies...'
                         sh 'npm install'
+                        echo 'Building frontend...'
                         sh 'npm run build'
                         echo 'Frontend build completed.'
                     }
                     // Setup ETL
                     dir('etl') {
-                        echo 'Setting up ETL environment...'
+                        echo '=== Setting up ETL ==='
+                        echo 'Current Directory:'
+                        sh 'pwd'
+                        echo 'Directory Contents:'
+                        sh 'ls -la'
+                        echo 'Creating Python virtual environment...'
                         sh 'python3 -m venv venv'
+                        echo 'Installing Python dependencies...'
                         sh '. venv/bin/activate && pip install -r requirements.txt'
                         echo 'ETL setup completed.'
                     }
