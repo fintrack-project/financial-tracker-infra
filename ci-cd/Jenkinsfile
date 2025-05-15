@@ -139,31 +139,11 @@ pipeline {
                     echo 'Pushing ETL image to $QUAY_REPO_ETL:latest...'
                     sh 'docker push $QUAY_REPO_ETL:latest'
                     echo 'ETL image pushed.'
-                }
-            }
-        }
-    }
 
-    post {
-        // success {
-        //     mail to: 'johnkim.work@outlook.com',
-        //         subject: "Jenkins Pipeline Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-        //         body: "The pipeline completed successfully."
-        // }
-        // failure {
-        //     mail to: 'johnkim.work@outlook.com',
-        //         subject: "Jenkins Pipeline Failure: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-        //         body: "The pipeline failed. Please check the logs."
-        // }
-        always {
-            agent any
-            steps {
-                script {
-                    try {
-                        sh 'docker logout ${DOCKER_REGISTRY} || true'
-                    } catch (Exception e) {
-                        echo "Error during cleanup: ${e.message}"
-                    }
+                    // Cleanup
+                    echo 'Cleaning up...'
+                    sh 'docker logout ${DOCKER_REGISTRY} || true'
+                    echo 'Cleanup completed.'
                 }
             }
         }
