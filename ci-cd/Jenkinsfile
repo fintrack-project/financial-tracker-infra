@@ -156,13 +156,11 @@ pipeline {
         //         body: "The pipeline failed. Please check the logs."
         // }
         always {
-            node {
-                script {
-                    try {
-                        sh 'docker logout ${DOCKER_REGISTRY}'
-                    } catch (Exception e) {
-                        echo "Error during cleanup: ${e.message}"
-                    }
+            script {
+                try {
+                    sh 'docker logout ${DOCKER_REGISTRY} || true'
+                } catch (Exception e) {
+                    echo "Error during cleanup: ${e.message}"
                 }
             }
         }
