@@ -20,7 +20,7 @@ pipeline {
                     // Clone frontend repository
                     echo 'Cloning frontend repository...'
                     dir('frontend') {
-                        git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-frontend.git'
+                        git branch: '1-deploy-this-app-with-minimum-viable-features', url: 'https://github.com/fintrack-project/financial-tracker-frontend.git'
                     }
                     echo 'Frontend repository cloned.'
 
