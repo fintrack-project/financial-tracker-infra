@@ -1,1 +1,28 @@
+# Application Configuration
 application.properties
+
+# CI/CD Configuration
+ci-cd/application-ci.properties
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# Build files
+target/
+build/
+dist/
+node_modules/
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.*
+
+# System files
+.DS_Store
+Thumbs.db

@@ -7,11 +7,21 @@ pipeline {
     }
 
     environment {
-        QUAY_CREDENTAILS = credentials('quay-credentials') // Quay.io robot account credentials
+        QUAY_CREDENTAILS = credentials('quay-credentials')
         QUAY_REPO_BACKEND = 'quay.io/johnkim1/financial-tracker-backend'
         QUAY_REPO_FRONTEND = 'quay.io/johnkim1/financial-tracker-frontend'
         QUAY_REPO_ETL = 'quay.io/johnkim1/financial-tracker-etl'
-        JAVA_HOME = '/opt/jdk-18'  // Updated to match Dockerfile.jenkins
+        JAVA_HOME = '/opt/jdk-18'
+        KAFKA_BOOTSTRAP_SERVERS = 'kafka:9093'
+        ZOOKEEPER_HOST = 'zookeeper:2181'
+        DATABASE_HOST = credentials('database-host')
+        DATABASE_PORT = credentials('database-port')
+        DATABASE_NAME = credentials('database-name')
+        DATABASE_USER = credentials('database-user')
+        DATABASE_PASSWORD = credentials('database-password')
+        AWS_ACCESS_KEY_ID = credentials('aws-access-key')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
+        AWS_REGION = credentials('aws-region')
     }
 
     stages {
@@ -22,6 +32,8 @@ pipeline {
                     echo 'Cloning backend repository...'
                     dir('backend') {
                         git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-backend.git'
+                        // Copy CI properties file
+                        sh 'cp ../application-ci.properties src/main/resources/application.properties'
                     }
                     echo 'Backend repository cloned.'
 
@@ -36,6 +48,8 @@ pipeline {
                     echo 'Cloning ETL repository...'
                     dir('etl') {
                         git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-etl.git'
+                        // Copy CI properties file
+                        sh 'cp ../application-ci.properties config/application.properties'
                     }
                     echo 'ETL repository cloned.'
                 }
