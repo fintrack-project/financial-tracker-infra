@@ -30,10 +30,10 @@ RUN curl -fsSL https://dlcdn.apache.org/maven/maven-3/3.9.9/binaries/apache-mave
     && ln -s /opt/apache-maven-3.9.9 /opt/maven \
     && ln -s /opt/maven/bin/mvn /usr/local/bin/mvn
 
-# Install NodeJS 18.x
+# Install NodeJS 18.x with compatible npm version
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
     && apt-get install -y nodejs \
-    && npm install -g npm@latest
+    && npm install -g npm@10.8.2
 
 # Install Python 3.9 and dependencies
 RUN apt-get update && apt-get install -y \

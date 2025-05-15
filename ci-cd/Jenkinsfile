@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        JAVA_HOME = '/opt/jdk-18'
+        PATH = "${JAVA_HOME}/bin:${env.PATH}"
+    }
+
     stages {
         stage('Clone') {
             steps {
@@ -49,6 +54,8 @@ pipeline {
                         pwd
                         echo "\nDirectory Contents:"
                         ls -la
+                        echo "\nJAVA_HOME:"
+                        echo $JAVA_HOME
                     '''
                     
                     // Build backend
@@ -58,8 +65,10 @@ pipeline {
                         sh 'pwd'
                         echo 'Directory Contents:'
                         sh 'ls -la'
+                        echo 'Checking pom.xml content:'
+                        sh 'cat pom.xml | grep -A 5 "<properties>"'
                         echo 'Building with Maven...'
-                        sh 'mvn clean package -Dmaven.compiler.source=17 -Dmaven.compiler.target=17'
+                        sh 'mvn clean package -Dmaven.compiler.source=18 -Dmaven.compiler.target=18 -Dmaven.compiler.release=18'
                         echo 'Backend build completed.'
                     }
                     // Build frontend
