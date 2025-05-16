@@ -1,27 +1,13 @@
 pipeline {
     agent any
 
-    tools {
-        maven 'Maven 3.9.9'
-        nodejs 'NodeJS 18.16.0'
-    }
-
     environment {
-        QUAY_CREDENTAILS = credentials('quay-credentials')
+        JAVA_HOME = '/opt/jdk-21'
+        PATH = "${JAVA_HOME}/bin:${env.PATH}"
         QUAY_REPO_BACKEND = 'quay.io/johnkim1/financial-tracker-backend'
         QUAY_REPO_FRONTEND = 'quay.io/johnkim1/financial-tracker-frontend'
         QUAY_REPO_ETL = 'quay.io/johnkim1/financial-tracker-etl'
-        JAVA_HOME = '/opt/jdk-18'
-        KAFKA_BOOTSTRAP_SERVERS = 'kafka:9093'
-        ZOOKEEPER_HOST = 'zookeeper:2181'
-        DATABASE_HOST = credentials('database-host')
-        DATABASE_PORT = credentials('database-port')
-        DATABASE_NAME = credentials('database-name')
-        DATABASE_USER = credentials('database-user')
-        DATABASE_PASSWORD = credentials('database-password')
-        AWS_ACCESS_KEY_ID = credentials('aws-access-key')
-        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
-        AWS_REGION = credentials('aws-region')
+        QUAY_REPO_DB = 'quay.io/johnkim1/financial-tracker-db'
     }
 
     stages {
@@ -32,8 +18,6 @@ pipeline {
                     echo 'Cloning backend repository...'
                     dir('backend') {
                         git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-backend.git'
-                        // Copy CI properties file
-                        sh 'cp ../application-ci.properties src/main/resources/application.properties'
                     }
                     echo 'Backend repository cloned.'
 
@@ -48,10 +32,15 @@ pipeline {
                     echo 'Cloning ETL repository...'
                     dir('etl') {
                         git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-etl.git'
-                        // Copy CI properties file
-                        sh 'cp ../application-ci.properties config/application.properties'
                     }
                     echo 'ETL repository cloned.'
+
+                    // Clone DB repository
+                    echo 'Cloning DB repository...'
+                    dir('db') {
+                        git branch: '1-deploy-this-app-with-minimum-viable-features', url: 'https://github.com/fintrack-project/financial-tracker-db.git'
+                    }
+                    echo 'DB repository cloned.'
                 }
             }
         }
@@ -59,23 +48,63 @@ pipeline {
         stage('Build') {
             steps {
                 script {
+                    // Log environment information
+                    echo '=== Environment Information ==='
+                    sh '''
+                        echo "Java Version:"
+                        java -version
+                        echo "\nMaven Version:"
+                        mvn -version
+                        echo "\nNode Version:"
+                        node -v
+                        echo "\nNPM Version:"
+                        npm -v
+                        echo "\nPython Version:"
+                        python3 --version
+                        echo "\nCurrent Directory:"
+                        pwd
+                        echo "\nDirectory Contents:"
+                        ls -la
+                        echo "\nJAVA_HOME:"
+                        echo $JAVA_HOME
+                    '''
+                    
                     // Build backend
                     dir('backend') {
-                        echo 'Building backend...'
-                        sh 'mvn clean package -Dmaven.compiler.source=18 -Dmaven.compiler.target=18'
+                        echo '=== Building Backend ==='
+                        echo 'Current Directory:'
+                        sh 'pwd'
+                        echo 'Directory Contents:'
+                        sh 'ls -la'
+                        echo 'Checking pom.xml content:'
+                        sh 'cat pom.xml | grep -A 5 "<properties>"'
+                        echo 'Building with Maven...'
+                        sh 'mvn clean package -Dmaven.compiler.source=21 -Dmaven.compiler.target=21 -Dmaven.compiler.release=21'
                         echo 'Backend build completed.'
                     }
                     // Build frontend
                     dir('frontend') {
-                        echo 'Building frontend...'
+                        echo '=== Building Frontend ==='
+                        echo 'Current Directory:'
+                        sh 'pwd'
+                        echo 'Directory Contents:'
+                        sh 'ls -la'
+                        echo 'Installing dependencies...'
                         sh 'npm install'
+                        echo 'Building frontend...'
                         sh 'npm run build'
                         echo 'Frontend build completed.'
                     }
                     // Setup ETL
                     dir('etl') {
-                        echo 'Setting up ETL environment...'
+                        echo '=== Setting up ETL ==='
+                        echo 'Current Directory:'
+                        sh 'pwd'
+                        echo 'Directory Contents:'
+                        sh 'ls -la'
+                        echo 'Creating Python virtual environment...'
                         sh 'python3 -m venv venv'
+                        echo 'Installing Python dependencies...'
                         sh '. venv/bin/activate && pip install -r requirements.txt'
                         echo 'ETL setup completed.'
                     }
@@ -104,6 +133,12 @@ pipeline {
                         sh 'docker build -t $QUAY_REPO_ETL:latest .'
                         echo 'ETL Dockerized.'
                     }
+                    // Dockerize DB
+                    dir('db') {
+                        echo 'Dockerizing DB $QUAY_REPO_DB:latest...'
+                        sh 'docker build -t $QUAY_REPO_DB:latest .'
+                        echo 'DB Dockerized.'
+                    }
                 }
             }
         }
@@ -111,48 +146,45 @@ pipeline {
         stage('Push Docker Images to Quay') {
             steps {
                 script {
-                    // Use withCredentials to securely bind Quay.io credentials
                     withCredentials([usernamePassword(credentialsId: 'quay-credentials', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD')]) {
                         echo 'Logging in to Quay.io...'
                         sh '''
                             echo $QUAY_PASSWORD | docker login quay.io --username $QUAY_USERNAME --password-stdin
                         '''
+
+                        // Push backend image
+                        echo 'Pushing backend image to $QUAY_REPO_BACKEND:latest...'
+                        sh 'docker push $QUAY_REPO_BACKEND:latest'
+                        echo 'Backend image pushed.'
+
+                        // Push frontend image
+                        echo 'Pushing frontend image to $QUAY_REPO_FRONTEND:latest...'
+                        sh 'docker push $QUAY_REPO_FRONTEND:latest'
+                        echo 'Frontend image pushed.'
+
+                        // Push ETL image
+                        echo 'Pushing ETL image to $QUAY_REPO_ETL:latest...'
+                        sh 'docker push $QUAY_REPO_ETL:latest'
+                        echo 'ETL image pushed.'
+
+                        // Push DB image
+                        echo 'Pushing DB image to $QUAY_REPO_DB:latest...'
+                        sh 'docker push $QUAY_REPO_DB:latest'
+                        echo 'DB image pushed.'
                     }
-
-                    // Push backend image
-                    echo 'Pushing backend image to $QUAY_REPO_BACKEND:latest...'
-                    sh 'docker push $QUAY_REPO_BACKEND:latest'
-                    echo 'Backend image pushed.'
-
-                    // Push frontend image
-                    echo 'Pushing frontend image to $QUAY_REPO_FRONTEND:latest...'
-                    sh 'docker push $QUAY_REPO_FRONTEND:latest'
-                    echo 'Frontend image pushed.'
-
-                    // Push ETL image
-                    echo 'Pushing ETL image to $QUAY_REPO_ETL:latest...'
-                    sh 'docker push $QUAY_REPO_ETL:latest'
-                    echo 'ETL image pushed.'
                 }
             }
         }
-    }
 
-    post {
-        // success {
-        //     mail to: 'johnkim.work@outlook.com',
-        //         subject: "Jenkins Pipeline Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-        //         body: "The pipeline completed successfully."
-        // }
-        // failure {
-        //     mail to: 'johnkim.work@outlook.com',
-        //         subject: "Jenkins Pipeline Failure: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-        //         body: "The pipeline failed. Please check the logs."
-        // }
-        always {
-            script {
-                sh 'docker system prune -f'
-                deleteDir()  // Use deleteDir() instead of cleanWs()
+        stage('Test') {
+            steps {
+                echo 'Testing...'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
             }
         }
     }

@@ -40,3 +40,87 @@ To deploy to Kubernetes:
 2. Apply the manifests:
    ```bash
    kubectl apply -f deployment/k8s/
+```
+
+## Running Docker Images from Quay.io
+
+After the CI/CD pipeline successfully builds and pushes images to Quay.io, you can run them locally using the following steps:
+
+### 1. Login to Quay.io
+```bash
+docker login quay.io
+```
+Enter your Quay.io username and password when prompted.
+
+### 2. Pull the Images
+Pull all required images from Quay.io:
+```bash
+docker pull quay.io/johnkim1/financial-tracker-backend:latest
+docker pull quay.io/johnkim1/financial-tracker-frontend:latest
+docker pull quay.io/johnkim1/financial-tracker-etl:latest
+docker pull quay.io/johnkim1/financial-tracker-db:latest
+```
+
+### 3. Run the Containers
+Run each container individually:
+
+```bash
+# Run database
+docker run -d \
+  --name financial-tracker-db \
+  -p 5433:5432 \
+  -e POSTGRES_USER=admin \
+  -e POSTGRES_PASSWORD=admin \
+  -e POSTGRES_DB=financial_tracker \
+  quay.io/johnkim1/financial-tracker-db:latest
+
+# Run backend
+docker run -d \
+  --name financial-tracker-backend \
+  -p 8080:8080 \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5433/financial_tracker \
+  -e SPRING_DATASOURCE_USERNAME=admin \
+  -e SPRING_DATASOURCE_PASSWORD=admin \
+  quay.io/johnkim1/financial-tracker-backend:latest
+
+# Run frontend
+docker run -d \
+  --name financial-tracker-frontend \
+  -p 3000:80 \
+  quay.io/johnkim1/financial-tracker-frontend:latest
+
+# Run ETL
+docker run -d \
+  --name financial-tracker-etl \
+  -e DB_HOST=host.docker.internal \
+  -e DB_PORT=5433 \
+  -e DB_NAME=financial_tracker \
+  -e DB_USER=admin \
+  -e DB_PASSWORD=admin \
+  quay.io/johnkim1/financial-tracker-etl:latest
+```
+
+Note: The `host.docker.internal` hostname is used to allow containers to communicate with each other when running individually. This works on macOS and Windows. On Linux, you might need to use the host machine's IP address.
+
+### 4. Verify the Services
+Check if containers are running:
+```bash
+docker ps
+```
+
+View container logs:
+```bash
+docker logs <container-name>
+```
+
+The services will be available at:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8080
+- Database: localhost:5433 (PostgreSQL)
+
+### 5. Stop and Remove Containers
+When you're done, you can stop and remove the containers:
+```bash
+docker stop financial-tracker-db financial-tracker-backend financial-tracker-frontend financial-tracker-etl
+docker rm financial-tracker-db financial-tracker-backend financial-tracker-frontend financial-tracker-etl
+```
