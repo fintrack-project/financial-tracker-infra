@@ -7,6 +7,7 @@ pipeline {
         QUAY_REPO_BACKEND = 'quay.io/johnkim1/financial-tracker-backend'
         QUAY_REPO_FRONTEND = 'quay.io/johnkim1/financial-tracker-frontend'
         QUAY_REPO_ETL = 'quay.io/johnkim1/financial-tracker-etl'
+        QUAY_REPO_DB = 'quay.io/johnkim1/financial-tracker-db'
     }
 
     stages {
@@ -23,7 +24,7 @@ pipeline {
                     // Clone frontend repository
                     echo 'Cloning frontend repository...'
                     dir('frontend') {
-                        git branch: '1-deploy-this-app-with-minimum-viable-features', url: 'https://github.com/fintrack-project/financial-tracker-frontend.git'
+                        git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-frontend.git'
                     }
                     echo 'Frontend repository cloned.'
 
@@ -33,6 +34,13 @@ pipeline {
                         git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-etl.git'
                     }
                     echo 'ETL repository cloned.'
+
+                    // Clone DB repository
+                    echo 'Cloning DB repository...'
+                    dir('db') {
+                        git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-db.git'
+                    }
+                    echo 'DB repository cloned.'
                 }
             }
         }
@@ -107,25 +115,29 @@ pipeline {
         stage('Dockerize - Build Images') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'quay-credentials', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD')]) {
-                        // Dockerize backend
-                        dir('backend') {
-                            echo 'Dockerizing backend $QUAY_REPO_BACKEND:latest...'
-                            sh 'docker build -t $QUAY_REPO_BACKEND:latest .'
-                            echo 'Backend Dockerized.'
-                        }
-                        // Dockerize frontend
-                        dir('frontend') {
-                            echo 'Dockerizing frontend $QUAY_REPO_FRONTEND:latest...'
-                            sh 'docker build -t $QUAY_REPO_FRONTEND:latest .'
-                            echo 'Frontend Dockerized.'
-                        }
-                        // Dockerize ETL
-                        dir('etl') {
-                            echo 'Dockerizing ETL $QUAY_REPO_ETL:latest...'
-                            sh 'docker build -t $QUAY_REPO_ETL:latest .'
-                            echo 'ETL Dockerized.'
-                        }
+                    // Dockerize backend
+                    dir('backend') {
+                        echo 'Dockerizing backend $QUAY_REPO_BACKEND:latest...'
+                        sh 'docker build -t $QUAY_REPO_BACKEND:latest .'
+                        echo 'Backend Dockerized.'
+                    }
+                    // Dockerize frontend
+                    dir('frontend') {
+                        echo 'Dockerizing frontend $QUAY_REPO_FRONTEND:latest...'
+                        sh 'docker build -t $QUAY_REPO_FRONTEND:latest .'
+                        echo 'Frontend Dockerized.'
+                    }
+                    // Dockerize ETL
+                    dir('etl') {
+                        echo 'Dockerizing ETL $QUAY_REPO_ETL:latest...'
+                        sh 'docker build -t $QUAY_REPO_ETL:latest .'
+                        echo 'ETL Dockerized.'
+                    }
+                    // Dockerize DB
+                    dir('db') {
+                        echo 'Dockerizing DB $QUAY_REPO_DB:latest...'
+                        sh 'docker build -t $QUAY_REPO_DB:latest .'
+                        echo 'DB Dockerized.'
                     }
                 }
             }
@@ -154,6 +166,11 @@ pipeline {
                         echo 'Pushing ETL image to $QUAY_REPO_ETL:latest...'
                         sh 'docker push $QUAY_REPO_ETL:latest'
                         echo 'ETL image pushed.'
+
+                        // Push DB image
+                        echo 'Pushing DB image to $QUAY_REPO_DB:latest...'
+                        sh 'docker push $QUAY_REPO_DB:latest'
+                        echo 'DB image pushed.'
                     }
                 }
             }
