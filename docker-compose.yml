@@ -5,15 +5,17 @@ services:
       context: .
       dockerfile: ci-cd/Dockerfile.jenkins
     ports:
-      - "9090:8080" # Map Jenkins HTTP to port 9090
-      - "50000:50000" # Optional: Only needed for Jenkins agents
+      - "9090:8080" # Jenkins UI
+      # - "50000:50000" # Optional: Only needed for Jenkins agents
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
       - JENKINS_OPTS=--httpPort=8080
+    user: jenkins
+    group_add:
+      - docker
     restart: unless-stopped
-    privileged: true # Required for Docker-in-Docker
 volumes:
   jenkins_home:

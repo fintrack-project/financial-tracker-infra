@@ -29,14 +29,15 @@ RUN apt-get update && apt-get install -y maven
 RUN mkdir -p /opt/jdk-21 \
     && curl -L https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.7+6/OpenJDK21U-jdk_aarch64_linux_hotspot_21.0.7_6.tar.gz | tar xz -C /opt/jdk-21 --strip-components=1
 
-# Install Docker
+# Install Docker CLI
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
     && apt-get update \
-    && apt-get install -y docker-ce docker-ce-cli containerd.io
+    && apt-get install -y docker-ce-cli
 
-# Add Jenkins user to docker group
-RUN usermod -aG docker jenkins
+# Create docker group and add jenkins user to it
+RUN groupadd -f docker \
+    && usermod -aG docker jenkins
 
 # Set environment variables
 ENV JAVA_HOME=/opt/jdk-21
