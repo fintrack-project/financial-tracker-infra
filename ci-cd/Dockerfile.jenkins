@@ -39,6 +39,12 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
 RUN groupadd -f docker \
     && usermod -aG docker jenkins
 
+# Create startup script to set Docker socket permissions
+RUN echo '#!/bin/bash\n\
+chmod 666 /var/run/docker.sock\n\
+su jenkins -c "/sbin/tini -- /usr/local/bin/jenkins.sh"' > /usr/local/bin/start-jenkins.sh \
+    && chmod +x /usr/local/bin/start-jenkins.sh
+
 # Set environment variables
 ENV JAVA_HOME=/opt/jdk-21
 ENV PATH=$JAVA_HOME/bin:$PATH
@@ -58,4 +64,7 @@ USER jenkins
 EXPOSE 8080
 
 # Expose Docker socket
-VOLUME /var/run/docker.sock 
+VOLUME /var/run/docker.sock
+
+# Use custom startup script
+ENTRYPOINT ["/usr/local/bin/start-jenkins.sh"] 

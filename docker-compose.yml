@@ -13,7 +13,7 @@ services:
     environment:
       - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
       - JENKINS_OPTS=--httpPort=8080
-    user: jenkins
+    user: root  # Start as root to set permissions
     group_add:
       - docker
     restart: unless-stopped
