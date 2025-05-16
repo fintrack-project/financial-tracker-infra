@@ -4,7 +4,6 @@ pipeline {
     environment {
         JAVA_HOME = '/opt/jdk-21'
         PATH = "${JAVA_HOME}/bin:${env.PATH}"
-        QUAY_CREDENTAILS = credentials('quay-credentials')
         QUAY_REPO_BACKEND = 'quay.io/johnkim1/financial-tracker-backend'
         QUAY_REPO_FRONTEND = 'quay.io/johnkim1/financial-tracker-frontend'
         QUAY_REPO_ETL = 'quay.io/johnkim1/financial-tracker-etl'
@@ -108,23 +107,25 @@ pipeline {
         stage('Dockerize - Build Images') {
             steps {
                 script {
-                    // Dockerize backend
-                    dir('backend') {
-                        echo 'Dockerizing backend $QUAY_REPO_BACKEND:latest...'
-                        sh 'docker build -t $QUAY_REPO_BACKEND:latest .'
-                        echo 'Backend Dockerized.'
-                    }
-                    // Dockerize frontend
-                    dir('frontend') {
-                        echo 'Dockerizing frontend $QUAY_REPO_FRONTEND:latest...'
-                        sh 'docker build -t $QUAY_REPO_FRONTEND:latest .'
-                        echo 'Frontend Dockerized.'
-                    }
-                    // Dockerize ETL
-                    dir('etl') {
-                        echo 'Dockerizing ETL $QUAY_REPO_ETL:latest...'
-                        sh 'docker build -t $QUAY_REPO_ETL:latest .'
-                        echo 'ETL Dockerized.'
+                    withCredentials([usernamePassword(credentialsId: 'quay-credentials', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD')]) {
+                        // Dockerize backend
+                        dir('backend') {
+                            echo 'Dockerizing backend $QUAY_REPO_BACKEND:latest...'
+                            sh 'docker build -t $QUAY_REPO_BACKEND:latest .'
+                            echo 'Backend Dockerized.'
+                        }
+                        // Dockerize frontend
+                        dir('frontend') {
+                            echo 'Dockerizing frontend $QUAY_REPO_FRONTEND:latest...'
+                            sh 'docker build -t $QUAY_REPO_FRONTEND:latest .'
+                            echo 'Frontend Dockerized.'
+                        }
+                        // Dockerize ETL
+                        dir('etl') {
+                            echo 'Dockerizing ETL $QUAY_REPO_ETL:latest...'
+                            sh 'docker build -t $QUAY_REPO_ETL:latest .'
+                            echo 'ETL Dockerized.'
+                        }
                     }
                 }
             }
@@ -133,28 +134,27 @@ pipeline {
         stage('Push Docker Images to Quay') {
             steps {
                 script {
-                    // Use withCredentials to securely bind Quay.io credentials
                     withCredentials([usernamePassword(credentialsId: 'quay-credentials', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD')]) {
                         echo 'Logging in to Quay.io...'
                         sh '''
                             echo $QUAY_PASSWORD | docker login quay.io --username $QUAY_USERNAME --password-stdin
                         '''
+
+                        // Push backend image
+                        echo 'Pushing backend image to $QUAY_REPO_BACKEND:latest...'
+                        sh 'docker push $QUAY_REPO_BACKEND:latest'
+                        echo 'Backend image pushed.'
+
+                        // Push frontend image
+                        echo 'Pushing frontend image to $QUAY_REPO_FRONTEND:latest...'
+                        sh 'docker push $QUAY_REPO_FRONTEND:latest'
+                        echo 'Frontend image pushed.'
+
+                        // Push ETL image
+                        echo 'Pushing ETL image to $QUAY_REPO_ETL:latest...'
+                        sh 'docker push $QUAY_REPO_ETL:latest'
+                        echo 'ETL image pushed.'
                     }
-
-                    // Push backend image
-                    echo 'Pushing backend image to $QUAY_REPO_BACKEND:latest...'
-                    sh 'docker push $QUAY_REPO_BACKEND:latest'
-                    echo 'Backend image pushed.'
-
-                    // Push frontend image
-                    echo 'Pushing frontend image to $QUAY_REPO_FRONTEND:latest...'
-                    sh 'docker push $QUAY_REPO_FRONTEND:latest'
-                    echo 'Frontend image pushed.'
-
-                    // Push ETL image
-                    echo 'Pushing ETL image to $QUAY_REPO_ETL:latest...'
-                    sh 'docker push $QUAY_REPO_ETL:latest'
-                    echo 'ETL image pushed.'
                 }
             }
         }
