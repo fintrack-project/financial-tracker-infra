@@ -2,7 +2,7 @@ FROM jenkins/jenkins:lts
 
 USER root
 
-# Install only essential packages
+# Install necessary packages
 RUN apt-get update && apt-get install -y \
     apt-transport-https \
     ca-certificates \
@@ -12,6 +12,13 @@ RUN apt-get update && apt-get install -y \
     wget \
     tar \
     git \
+    python3 \
+    python3-pip \
+    python3-venv \
+    maven \
+    postgresql \
+    postgresql-contrib \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Eclipse Temurin (Adoptium) JDK 21 (ARM64)
@@ -53,13 +60,9 @@ RUN jenkins-plugin-cli --plugins \
     pipeline-model-definition:latest \
     pipeline-stage-view:latest \
     blueocean:latest \
-    maven-plugin:latest \
-    nodejs:latest \
-    python:latest \
-    jdk-tool:latest \
-    git-parameter:latest \
-    credentials-binding:latest \
-    ssh-agent:latest
+    credentials:latest \
+    ssh-agent:latest \
+    ws-cleanup:latest
 
 # Set environment variables
 ENV JAVA_HOME=/opt/jdk-21
