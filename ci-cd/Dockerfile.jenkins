@@ -4,52 +4,43 @@ USER root
 
 # Install necessary packages
 RUN apt-get update && apt-get install -y \
-    apt-transport-https \
-    ca-certificates \
+    git \
     curl \
+    wget \
     gnupg \
     lsb-release \
-    wget \
-    tar \
-    git \
+    ca-certificates \
+    apt-transport-https \
+    software-properties-common \
     python3 \
     python3-pip \
     python3-venv \
-    maven \
-    postgresql \
-    postgresql-contrib \
-    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
-
-# Install Eclipse Temurin (Adoptium) JDK 21 (ARM64)
-RUN wget -O /tmp/OpenJDK21.tar.gz https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.7+6/OpenJDK21U-jdk_aarch64_linux_hotspot_21.0.7_6.tar.gz \
-    && mkdir -p /opt/jdk-21 \
-    && tar -xzf /tmp/OpenJDK21.tar.gz --strip-components=1 -C /opt/jdk-21 \
-    && rm /tmp/OpenJDK21.tar.gz
 
 # Install Node.js 18.x
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
     && apt-get install -y nodejs \
     && npm install -g npm@8.19.4
 
-# Install Docker (required for Docker-in-Docker)
+# Install Maven
+RUN apt-get update && apt-get install -y maven
+
+# Download and install Eclipse Temurin JDK 21
+RUN mkdir -p /opt/jdk-21 \
+    && curl -L https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.7+6/OpenJDK21U-jdk_aarch64_linux_hotspot_21.0.7_6.tar.gz | tar xz -C /opt/jdk-21 --strip-components=1
+
+# Install Docker
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
     && apt-get update \
-    && apt-get install -y docker-ce docker-ce-cli containerd.io \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get install -y docker-ce docker-ce-cli containerd.io
 
-# Install Maven
-RUN apt-get update && apt-get install -y maven \
-    && rm -rf /var/lib/apt/lists/*
+# Add Jenkins user to docker group
+RUN usermod -aG docker jenkins
 
-# Set proper permissions for Jenkins home directory
-RUN mkdir -p /var/jenkins_home \
-    && chown -R jenkins:jenkins /var/jenkins_home \
-    && chmod 777 /var/jenkins_home
-
-# Switch back to jenkins user
-USER jenkins
+# Set environment variables
+ENV JAVA_HOME=/opt/jdk-21
+ENV PATH=$JAVA_HOME/bin:$PATH
 
 # Install Jenkins plugins
 RUN jenkins-plugin-cli --plugins \
@@ -58,15 +49,9 @@ RUN jenkins-plugin-cli --plugins \
     configuration-as-code:latest \
     docker-workflow:latest \
     pipeline-model-definition:latest \
-    pipeline-stage-view:latest \
-    blueocean:latest \
-    credentials:latest \
-    ssh-agent:latest \
-    ws-cleanup:latest
+    blueocean:latest
 
-# Set environment variables
-ENV JAVA_HOME=/opt/jdk-21
-ENV PATH=$JAVA_HOME/bin:$PATH
+USER jenkins
 
 # Expose Jenkins port
 EXPOSE 8080

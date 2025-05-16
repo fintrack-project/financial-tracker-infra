@@ -8,7 +8,6 @@ pipeline {
         QUAY_REPO_BACKEND = 'quay.io/johnkim1/financial-tracker-backend'
         QUAY_REPO_FRONTEND = 'quay.io/johnkim1/financial-tracker-frontend'
         QUAY_REPO_ETL = 'quay.io/johnkim1/financial-tracker-etl'
-        QUAY_REPO_JENKINS = 'quay.io/johnkim1/financial-tracker-jenkins'
     }
 
     stages {
@@ -109,11 +108,6 @@ pipeline {
         stage('Dockerize - Build Images') {
             steps {
                 script {
-                    // Dockerize Jenkins
-                    echo 'Dockerizing Jenkins $QUAY_REPO_JENKINS:latest...'
-                    sh 'docker build -t $QUAY_REPO_JENKINS:latest -f ci-cd/Dockerfile.jenkins .'
-                    echo 'Jenkins Dockerized.'
-
                     // Dockerize backend
                     dir('backend') {
                         echo 'Dockerizing backend $QUAY_REPO_BACKEND:latest...'
@@ -146,11 +140,6 @@ pipeline {
                             echo $QUAY_PASSWORD | docker login quay.io --username $QUAY_USERNAME --password-stdin
                         '''
                     }
-
-                    // Push Jenkins image
-                    echo 'Pushing Jenkins image to $QUAY_REPO_JENKINS:latest...'
-                    sh 'docker push $QUAY_REPO_JENKINS:latest'
-                    echo 'Jenkins image pushed.'
 
                     // Push backend image
                     echo 'Pushing backend image to $QUAY_REPO_BACKEND:latest...'
