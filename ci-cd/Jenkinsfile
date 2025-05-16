@@ -78,19 +78,6 @@ pipeline {
                         sh 'pwd'
                         echo 'Directory Contents:'
                         sh 'ls -la'
-                        echo 'Checking src directory structure:'
-                        sh '''
-                            echo "=== src directory ==="
-                            ls -la src/
-                            echo "\n=== src/services directory ==="
-                            ls -la src/services/
-                            echo "\n=== src/pages directory ==="
-                            ls -la src/pages/
-                            echo "\n=== src/pages/PlatformManagement directory ==="
-                            ls -la src/pages/PlatformManagement/
-                            echo "\n=== Checking for subCategoryService ==="
-                            find src -name "subCategoryService*"
-                        '''
                         echo 'Installing dependencies...'
                         sh 'npm install'
                         echo 'Building frontend...'
