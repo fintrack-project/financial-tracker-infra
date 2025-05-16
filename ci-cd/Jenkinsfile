@@ -38,7 +38,7 @@ pipeline {
                     // Clone DB repository
                     echo 'Cloning DB repository...'
                     dir('db') {
-                        git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-db.git'
+                        git branch: '1-deploy-this-app-with-minimum-viable-features', url: 'https://github.com/fintrack-project/financial-tracker-db.git'
                     }
                     echo 'DB repository cloned.'
                 }
