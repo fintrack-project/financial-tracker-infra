@@ -10,12 +10,19 @@ else
 fi
 
 # Create network if it doesn't exist
-if ! docker network ls | grep -q ${DATABASE_NETWORK_NAME}; then
-    echo "Creating ${DATABASE_NETWORK_NAME}..."
-    docker network create ${DATABASE_NETWORK_NAME}
+echo "Checking for network fintrack-network..."
+if ! docker network ls | grep -q fintrack-network; then
+    echo "Creating network fintrack-network..."
+    docker network create fintrack-network
+    echo "Network created successfully"
 else
-    echo "${DATABASE_NETWORK_NAME} already exists"
+    echo "Network fintrack-network already exists"
 fi
 
-# Start the services
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up 
+# Verify network exists
+echo "Verifying network exists..."
+docker network ls | grep fintrack-network
+
+# Start services
+echo "Starting services..."
+docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.yml up --build 

@@ -29,12 +29,20 @@ services:
       - db
       - kafka
       - zookeeper
+      - mailhog
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:${DATABASE_INTERNAL_PORT}/${DATABASE_NAME}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      # SMTP Configuration
+      SPRING_MAIL_HOST: mailhog
+      SPRING_MAIL_PORT: ${SMTP_PORT}
+      SPRING_MAIL_USERNAME: 
+      SPRING_MAIL_PASSWORD: 
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: false
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: false
     networks:
-      - ${DATABASE_NETWORK_NAME}
+      - fintrack-network
   etl:
     build:
       context: ../financial-tracker-etl
@@ -44,14 +52,14 @@ services:
       - kafka
       - zookeeper
     environment:
-      KAFKA_BROKER: kafka:9093
+      KAFKA_BROKER: ${KAFKA_BROKER_HOST}:${KAFKA_BROKER_HOST_PORT}
       DATABASE_HOST: ${DATABASE_HOST}
       DATABASE_PORT: ${DATABASE_INTERNAL_PORT}
       DATABASE_NAME: ${DATABASE_NAME}
       DATABASE_USER: ${POSTGRES_USER}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
-      - ${DATABASE_NETWORK_NAME}
+      - fintrack-network
   db:
     image: postgres:15
     volumes:
@@ -61,15 +69,15 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
-      - ${DATABASE_NETWORK_NAME}
+      - fintrack-network
   kafka:
     image: confluentinc/cp-kafka:7.4.0
     ports:
-      - "9092:9092" # Host communication
-      - "9093:9093" # Docker network communication
+      - "${KAFKA_BROKER_HOST_PORT}:${KAFKA_BROKER_HOST_PORT}" # Host communication
+      - "${KAFKA_BROKER_INTERNAL_PORT}:${KAFKA_BROKER_INTERNAL_PORT}" # Docker network communication
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ZOOKEEPER_CONNECT: ${ZOOKEEPER_HOST}:${ZOOKEEPER_PORT}
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9093,PLAINTEXT_HOST://localhost:9092
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
@@ -78,7 +86,7 @@ services:
     depends_on:
       - zookeeper
     networks:
-      - ${DATABASE_NETWORK_NAME}
+      - fintrack-network
     healthcheck:
       test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9093 --list"]
       interval: 30s
@@ -88,14 +96,27 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.0
     ports:
-      - "2181:2181"
+      - "${ZOOKEEPER_PORT}:${ZOOKEEPER_PORT}"
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_PORT}
       ZOOKEEPER_TICK_TIME: 2000
     networks:
-      - ${DATABASE_NETWORK_NAME}
+      - fintrack-network
     healthcheck:
-      test: ["CMD-SHELL", "echo srvr | nc localhost 2181"]
+      test: ["CMD-SHELL", "echo srvr | nc localhost ${ZOOKEEPER_PORT}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "${SMTP_PORT}:${SMTP_PORT}" # SMTP server
+      - "${MAILHOG_PORT}:${MAILHOG_PORT}" # Web UI
+    networks:
+      - fintrack-network
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost ${SMTP_PORT}"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -105,5 +126,5 @@ volumes:
   pgdata:
 
 networks:
-  ${DATABASE_NETWORK_NAME}:
+  fintrack-network:
     external: true
