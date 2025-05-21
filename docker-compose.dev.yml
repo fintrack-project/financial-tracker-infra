@@ -15,21 +15,21 @@ services:
     command: ./mvnw spring-boot:run
     environment:
       SPRING_PROFILES_ACTIVE: dev
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/devdb
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:${POSTGRES_INTERNAL_PORT}/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
   etl:
     environment:
       KAFKA_BROKER: kafka:9093
-      DATABASE_HOST: db
-      DATABASE_PORT: 5432
-      DATABASE_NAME: devdb
+      DATABASE_HOST: ${POSTGRES_HOST}
+      DATABASE_PORT: ${POSTGRES_INTERNAL_PORT}
+      DATABASE_NAME: ${POSTGRES_DB}
       DATABASE_USER: ${POSTGRES_USER}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
   db:
     ports:
-      - "5433:5432"
+      - "${POSTGRES_HOST_PORT}:${POSTGRES_INTERNAL_PORT}"
     environment:
-      POSTGRES_DB: devdb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: devsecret 
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD} 
