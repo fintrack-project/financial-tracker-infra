@@ -25,8 +25,8 @@ For CI/CD environment setup:
      - `DATABASE_HOST`
      - `DATABASE_PORT`
      - `DATABASE_NAME`
-     - `DATABASE_USER`
-     - `DATABASE_PASSWORD`
+     - `POSTGRES_USER`
+     - `POSTGRES_PASSWORD`
    - AWS:
      - `AWS_ACCESS_KEY_ID`
      - `AWS_SECRET_ACCESS_KEY`
