@@ -26,10 +26,16 @@ services:
     build:
       context: ../financial-tracker-backend
     depends_on:
-      - db
-      - kafka
-      - zookeeper
-      - mailhog
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      zookeeper:
+        condition: service_healthy
+      mailhog:
+        condition: service_healthy
+    volumes:
+      - ../financial-tracker-backend/src/main/resources/firebase-service-account.json:/app/src/main/resources/firebase-service-account.json:ro
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:${DATABASE_INTERNAL_PORT}/${DATABASE_NAME}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
@@ -41,16 +47,32 @@ services:
       SPRING_MAIL_PASSWORD: 
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: false
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: false
+      # JPA Configuration
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+      SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: "true"
+      # Stripe Configuration
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      # Firebase Configuration
+      FIREBASE_SERVICE_ACCOUNT_PATH: /app/src/main/resources/firebase-service-account.json
+      # Application URLs
+      APP_BASE_URL: ${FRONTEND_URL}
     networks:
       - fintrack-network
   etl:
     build:
       context: ../financial-tracker-etl
     depends_on:
-      - db
-      - backend
-      - kafka
-      - zookeeper
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+      zookeeper:
+        condition: service_healthy
     environment:
       KAFKA_BROKER: ${KAFKA_BROKER_HOST}:${KAFKA_BROKER_HOST_PORT}
       DATABASE_HOST: ${DATABASE_HOST}
@@ -70,6 +92,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
       - fintrack-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   kafka:
     image: confluentinc/cp-kafka:7.4.0
     ports:
@@ -84,7 +111,8 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     networks:
       - fintrack-network
     healthcheck:
