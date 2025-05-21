@@ -1,10 +1,18 @@
 services:
   frontend:
+    build:
+      target: prod
     ports:
       - "80:80"
-    command: ["nginx", "-g", "daemon off;"]
     environment:
       - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
   backend:
     ports:
       - "8080:8080"
@@ -13,6 +21,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:${DATABASE_INTERNAL_PORT}/${DATABASE_NAME}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    restart: unless-stopped
   etl:
     environment:
       KAFKA_BROKER: kafka:9093
@@ -21,6 +30,7 @@ services:
       DATABASE_NAME: ${DATABASE_NAME}
       DATABASE_USER: ${POSTGRES_USER}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+    restart: unless-stopped
   db:
     ports:
       - "${DATABASE_HOST_PORT}:${DATABASE_INTERNAL_PORT}"
@@ -29,4 +39,5 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - pgdata:/var/lib/postgresql/data 
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped 

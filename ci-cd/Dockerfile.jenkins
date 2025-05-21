@@ -33,11 +33,11 @@ ENV PATH=$JAVA_HOME/bin:$PATH
 RUN groupadd -f docker && usermod -aG docker jenkins
 
 # Startup script for Docker socket permissions
-COPY --chown=jenkins:jenkins start-jenkins.sh /usr/local/bin/start-jenkins.sh
+COPY ci-cd/start-jenkins.sh /usr/local/bin/start-jenkins.sh
 RUN chmod +x /usr/local/bin/start-jenkins.sh
 
 # Install Jenkins plugins using plugins.txt for better caching
-COPY plugins.txt /usr/share/jenkins/ref/plugins.txt
+COPY ci-cd/plugins.txt /usr/share/jenkins/ref/plugins.txt
 RUN jenkins-plugin-cli --plugin-file /usr/share/jenkins/ref/plugins.txt
 
 USER jenkins

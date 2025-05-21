@@ -1,12 +1,16 @@
 services:
   frontend:
+    build:
+      target: dev
     ports:
       - "3000:3000"
     volumes:
       - ../financial-tracker-frontend:/app
-    command: npm start
+      - /app/node_modules
     environment:
       - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
   backend:
     ports:
       - "8080:8080"
