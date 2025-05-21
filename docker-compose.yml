@@ -17,5 +17,26 @@ services:
     group_add:
       - docker
     restart: unless-stopped
+  frontend:
+    build:
+      context: ../financial-tracker-frontend
+    depends_on:
+      - backend
+  backend:
+    build:
+      context: ../financial-tracker-backend
+    depends_on:
+      - db
+  etl:
+    build:
+      context: ../financial-tracker-etl
+    depends_on:
+      - db
+      - backend
+  db:
+    image: postgres:15
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 volumes:
   jenkins_home:
+  pgdata:
