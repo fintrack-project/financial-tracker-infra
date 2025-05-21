@@ -27,16 +27,31 @@ services:
       context: ../financial-tracker-backend
     depends_on:
       - db
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:${DATABASE_INTERNAL_PORT}/${DATABASE_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DATABASE_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DATABASE_PASSWORD}
   etl:
     build:
       context: ../financial-tracker-etl
     depends_on:
       - db
       - backend
+    environment:
+      KAFKA_BROKER: kafka:9093
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_PORT: ${DATABASE_INTERNAL_PORT}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
   db:
     image: postgres:15
     volumes:
       - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
 volumes:
   jenkins_home:
   pgdata:
