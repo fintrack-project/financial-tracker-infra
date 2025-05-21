@@ -8,6 +8,7 @@ pipeline {
         QUAY_REPO_FRONTEND = 'quay.io/johnkim1/financial-tracker-frontend'
         QUAY_REPO_ETL = 'quay.io/johnkim1/financial-tracker-etl'
         QUAY_REPO_DB = 'quay.io/johnkim1/financial-tracker-db'
+        DATABASE_NETWORK_NAME = 'fintrack-network'
     }
 
     stages {
@@ -184,7 +185,17 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                echo 'Deploying...'
+                script {
+                    echo 'Creating Docker network if it does not exist...'
+                    sh '''
+                        if ! docker network ls | grep -q ${DATABASE_NETWORK_NAME}; then
+                            docker network create ${DATABASE_NETWORK_NAME}
+                        fi
+                    '''
+                    
+                    echo 'Deploying services...'
+                    sh 'docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d'
+                }
             }
         }
     }
