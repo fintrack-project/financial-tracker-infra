@@ -11,6 +11,11 @@ services:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
+      - REACT_APP_API_URL=http://backend:8080
+    command: >
+      sh -c "echo 'REACT_APP_API_URL: $REACT_APP_API_URL' && npm start"
+    networks:
+      - fintrack-network
   backend:
     build:
       target: dev
@@ -29,7 +34,7 @@ services:
       - kafka
       - zookeeper
     networks:
-      - ${DATABASE_NETWORK_NAME}
+      - fintrack-network
   etl:
     environment:
       KAFKA_BROKER: kafka:9093
