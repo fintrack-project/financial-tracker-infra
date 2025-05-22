@@ -52,13 +52,16 @@ services:
       SPRING_JPA_SHOW_SQL: "true"
       SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: "true"
       # Stripe Configuration
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
-      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      STRIPE_SECRET_KEY: ${STRIPE_TEST_SECRET_KEY}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_TEST_PUBLISHABLE_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_TEST_WEBHOOK_SECRET}
       # Firebase Configuration
       FIREBASE_SERVICE_ACCOUNT_PATH: /app/src/main/resources/firebase-service-account.json
       # Application URLs
       APP_BASE_URL: ${FRONTEND_URL}
+      # JWT Configuration
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
     networks:
       - fintrack-network
   etl:
