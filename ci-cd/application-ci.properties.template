@@ -1,7 +1,7 @@
 # Database Configuration
-spring.datasource.url=jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}
-spring.datasource.username=${DATABASE_USER}
-spring.datasource.password=${DATABASE_PASSWORD}
+spring.datasource.url=jdbc:postgresql://${DATABASE_HOST}:${DATABASE_INTERNAL_PORT}/${DATABASE_NAME}
+spring.datasource.username=${POSTGRES_USER}
+spring.datasource.password=${POSTGRES_PASSWORD}
 
 # Server Configuration
 frontend-server.port=3000

@@ -1,0 +1,3 @@
+version: '3.8'
+services:
+  # Add local developer overrides here if needed 

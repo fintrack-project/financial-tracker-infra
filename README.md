@@ -44,7 +44,48 @@ To deploy to Kubernetes:
 
 ## Running Docker Images from Quay.io
 
-After the CI/CD pipeline successfully builds and pushes images to Quay.io, you can run them locally using the following steps:
+### Option 1: Using Docker Compose (Recommended)
+
+The easiest way to run all services is using Docker Compose. This ensures proper service orchestration and environment configuration.
+
+1. Create a `.env.dev` file in the project root with your environment variables:
+```bash
+# Database
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=admin
+POSTGRES_DB=financial_tracker
+
+# Backend
+SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/financial_tracker
+SPRING_DATASOURCE_USERNAME=admin
+SPRING_DATASOURCE_PASSWORD=admin
+
+# ETL
+DB_HOST=db
+DB_PORT=5432
+DB_NAME=financial_tracker
+DB_USER=admin
+DB_PASSWORD=admin
+```
+
+2. Start all services:
+```bash
+docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+
+3. Stop and remove all containers:
+```bash
+docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.yml down -v --remove-orphans
+```
+
+The services will be available at:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8080
+- Database: localhost:5433 (PostgreSQL)
+
+### Option 2: Running Individual Containers
+
+If you prefer to run containers individually, follow these steps:
 
 ### 1. Login to Quay.io
 ```bash
