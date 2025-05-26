@@ -91,17 +91,23 @@ services:
     networks:
       - fintrack-network
   db:
+    image: postgres:15
     ports:
       - "${DATABASE_HOST_PORT}:${DATABASE_INTERNAL_PORT}"
     environment:
       POSTGRES_DB: ${DATABASE_NAME}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${DATABASE_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - fintrack-network
   mailhog:
     image: mailhog/mailhog
     ports:
@@ -118,3 +124,6 @@ services:
       retries: 5
     networks:
       - fintrack-network 
+
+volumes:
+  postgres_data: 
