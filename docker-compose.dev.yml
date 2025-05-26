@@ -47,8 +47,8 @@ services:
       SPRING_FLYWAY_VALIDATE_ON_MIGRATE: true
       SPRING_FLYWAY_CLEAN_DISABLED: false
       SPRING_FLYWAY_CLEAN_ON_VALIDATION_ERROR: true
-      SPRING_FLYWAY_SCHEMAS: ${DATABASE_NAME}
-      SPRING_FLYWAY_DEFAULT_SCHEMA: ${DATABASE_NAME}
+      SPRING_FLYWAY_SCHEMAS: ${DATABASE_SCHEMA_NAME}
+      SPRING_FLYWAY_DEFAULT_SCHEMA: ${DATABASE_SCHEMA_NAME}
       # Stripe Configuration (Development)
       STRIPE_SECRET_KEY: ${STRIPE_TEST_SECRET_KEY}
       STRIPE_PUBLISHABLE_KEY: ${STRIPE_TEST_PUBLISHABLE_KEY}
@@ -111,8 +111,8 @@ services:
   mailhog:
     image: mailhog/mailhog
     ports:
-      - "${MAILHOG_PORT}:1025"  # SMTP server
-      - "${MAILHOG_UI_PORT}:8025"  # Web UI
+      - "${SMTP_PORT}:${SMTP_PORT}" # SMTP server
+      - "${MAILHOG_PORT}:${MAILHOG_PORT}" # Web UI
     environment:
       MH_HOSTNAME: ${SMTP_HOST}
       MH_SMTP_BIND_ADDR: 0.0.0.0:1025
