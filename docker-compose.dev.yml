@@ -1,6 +1,7 @@
 services:
   frontend:
     build:
+      context: ../financial-tracker-frontend
       target: dev
     ports:
       - "3000:3000"
@@ -18,12 +19,14 @@ services:
       - fintrack-network
   backend:
     build:
+      context: ../financial-tracker-backend
       target: dev
     ports:
       - "8080:8080"
     volumes:
       - ../financial-tracker-backend:/app
       - ../financial-tracker-backend/src/main/resources/firebase-service-account.json:/app/src/main/resources/firebase-service-account.json:ro
+      - ../financial-tracker-db/migrations:/app/migrations:ro
     environment:
       SPRING_PROFILES_ACTIVE: dev
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:${DATABASE_INTERNAL_PORT}/${DATABASE_NAME}
@@ -32,12 +35,20 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
       SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: PLAINTEXT
       # Mail Configuration (Development)
-      SPRING_MAIL_HOST: mailhog
-      SPRING_MAIL_PORT: 1025
-      SPRING_MAIL_USERNAME: 
-      SPRING_MAIL_PASSWORD: 
-      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: false
-      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: false
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_USERNAME: 
+      SMTP_PASSWORD: 
+      SMTP_AUTH: false
+      SMTP_STARTTLS: false
+      # Flyway Configuration
+      FLYWAY_LOCATIONS: filesystem:/app/migrations
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: true
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: true
+      SPRING_FLYWAY_CLEAN_DISABLED: false
+      SPRING_FLYWAY_CLEAN_ON_VALIDATION_ERROR: true
+      SPRING_FLYWAY_SCHEMAS: ${DATABASE_NAME}
+      SPRING_FLYWAY_DEFAULT_SCHEMA: ${DATABASE_NAME}
       # Stripe Configuration (Development)
       STRIPE_SECRET_KEY: ${STRIPE_TEST_SECRET_KEY}
       STRIPE_PUBLISHABLE_KEY: ${STRIPE_TEST_PUBLISHABLE_KEY}
@@ -58,6 +69,9 @@ services:
     networks:
       - fintrack-network
   etl:
+    build:
+      context: ../financial-tracker-etl
+      target: builder
     environment:
       KAFKA_BROKER: kafka:9093
       DATABASE_HOST: ${DATABASE_HOST}
@@ -74,6 +88,8 @@ services:
         condition: service_healthy
       zookeeper:
         condition: service_healthy
+    networks:
+      - fintrack-network
   db:
     ports:
       - "${DATABASE_HOST_PORT}:${DATABASE_INTERNAL_PORT}"
@@ -91,6 +107,10 @@ services:
     ports:
       - "${MAILHOG_PORT}:1025"  # SMTP server
       - "${MAILHOG_UI_PORT}:8025"  # Web UI
+    environment:
+      MH_HOSTNAME: ${SMTP_HOST}
+      MH_SMTP_BIND_ADDR: 0.0.0.0:1025
+      MH_API_BIND_ADDR: 0.0.0.0:8025
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "1025"]
       interval: 5s
