@@ -3,40 +3,53 @@ services:
     build:
       target: prod
     ports:
-      - "80:80"
+      - "3000:3000"
+    volumes:
+      - ../financial-tracker-frontend:/app
+      - /app/node_modules
     environment:
-      - NODE_ENV=production
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 5s
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+      - REACT_APP_API_URL=http://backend:8080
+    command: >
+      sh -c "echo 'REACT_APP_API_URL: $REACT_APP_API_URL' && npm start"
+    networks:
+      - fintrack-network
   backend:
     build:
       target: prod
     ports:
       - "8080:8080"
+    volumes:
+      - ../financial-tracker-backend:/app
+      - ../financial-tracker-backend/src/main/resources/firebase-service-account.json:/app/src/main/resources/firebase-service-account.json:ro
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:${DATABASE_INTERNAL_PORT}/${DATABASE_NAME}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      # Production SMTP Configuration
-      SPRING_MAIL_HOST: ${SMTP_HOST}
-      SPRING_MAIL_PORT: ${SMTP_PORT}
-      SPRING_MAIL_USERNAME: ${SMTP_USERNAME}
-      SPRING_MAIL_PASSWORD: ${SMTP_PASSWORD}
-      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: true
-      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: true
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 5s
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
+      SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: PLAINTEXT
+      # Stripe Configuration (Development)
+      STRIPE_SECRET_KEY: ${STRIPE_TEST_SECRET_KEY}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_TEST_PUBLISHABLE_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_TEST_WEBHOOK_SECRET}
+      # Firebase Configuration (Development)
+      FIREBASE_SERVICE_ACCOUNT_PATH: /app/src/main/resources/firebase-service-account.json
+      # Application URLs
+      APP_BASE_URL: ${FRONTEND_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      zookeeper:
+        condition: service_healthy
+      mailhog:
+        condition: service_healthy
+    networks:
+      - fintrack-network
   etl:
     environment:
       KAFKA_BROKER: kafka:9093
@@ -45,7 +58,15 @@ services:
       DATABASE_NAME: ${DATABASE_NAME}
       DATABASE_USER: ${POSTGRES_USER}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
-    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+      zookeeper:
+        condition: service_healthy
   db:
     ports:
       - "${DATABASE_HOST_PORT}:${DATABASE_INTERNAL_PORT}"
@@ -53,6 +74,8 @@ services:
       POSTGRES_DB: ${DATABASE_NAME}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    restart: unless-stopped 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5 
