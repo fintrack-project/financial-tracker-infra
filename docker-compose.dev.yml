@@ -29,14 +29,14 @@ services:
       - ../financial-tracker-db/migrations:/app/migrations:ro
     environment:
       SPRING_PROFILES_ACTIVE: dev
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:${DATABASE_INTERNAL_PORT}/${DATABASE_NAME}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_INTERNAL_PORT}/${DATABASE_NAME}?currentSchema=${DATABASE_SCHEMA_NAME}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
       SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: PLAINTEXT
       # Mail Configuration (Development)
-      SMTP_HOST: mailhog
-      SMTP_PORT: 1025
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
       SMTP_USERNAME: 
       SMTP_PASSWORD: 
       SMTP_AUTH: false
