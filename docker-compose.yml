@@ -92,7 +92,7 @@ services:
       zookeeper:
         condition: service_healthy
     environment:
-      KAFKA_BROKER: ${KAFKA_BROKER_HOST}:${KAFKA_BROKER_HOST_PORT}
+      KAFKA_BROKER: kafka:9093
       DATABASE_HOST: ${DATABASE_HOST}
       DATABASE_PORT: ${DATABASE_INTERNAL_PORT}
       DATABASE_NAME: ${DATABASE_NAME}
@@ -101,7 +101,7 @@ services:
     networks:
       - fintrack-network
     healthcheck:
-      test: ["CMD-SHELL", "ps aux | grep supervisord | grep -v grep || exit 1"]
+      test: ["CMD-SHELL", "supervisorctl status kafka_consumer | grep RUNNING || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -124,16 +124,26 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.4.0
     ports:
-      - "${KAFKA_BROKER_HOST_PORT}:${KAFKA_BROKER_HOST_PORT}" # Host communication
-      - "${KAFKA_BROKER_INTERNAL_PORT}:${KAFKA_BROKER_INTERNAL_PORT}" # Docker network communication
+      - "9092:9092" # Host communication
+      - "9093:9093" # Docker network communication
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: ${ZOOKEEPER_HOST}:${ZOOKEEPER_PORT}
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9093,PLAINTEXT_HOST://localhost:9092
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_NUM_PARTITIONS: 1
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_CONNECTIONS_MAX_IDLE_MS: 540000
+      KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS: 300000
+      KAFKA_CONSUMER_SESSION_TIMEOUT_MS: 60000
+      KAFKA_CONSUMER_HEARTBEAT_INTERVAL_MS: 20000
     depends_on:
       zookeeper:
         condition: service_healthy
