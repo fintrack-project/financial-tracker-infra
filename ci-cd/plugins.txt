@@ -1,0 +1,6 @@
+workflow-aggregator:latest
+git:latest
+configuration-as-code:latest
+docker-workflow:latest
+pipeline-model-definition:latest
+blueocean:latest 
