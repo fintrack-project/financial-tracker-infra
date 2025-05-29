@@ -5,7 +5,8 @@ pipeline {
         DOCKER_REGISTRY = 'quay.io/johnkim1'
         BUILD_NUMBER = "${env.BUILD_NUMBER}"
         SERVICES = 'frontend,backend,etl'
-        BRANCH_NAME = "${env.BRANCH_NAME}"
+        // Get branch name from git command, fallback to env.BRANCH_NAME
+        BRANCH_NAME = sh(script: 'git rev-parse --abbrev-ref HEAD || echo $BRANCH_NAME', returnStdout: true).trim()
         BASE_COMPOSE = 'docker-compose.yml'
         ENV_COMPOSE = "docker-compose.${params.BUILD_ENVIRONMENT}.yml"
         ENV_FILE = ".env.${params.BUILD_ENVIRONMENT}"
@@ -59,12 +60,12 @@ pipeline {
                     echo "Current branch: ${BRANCH_NAME}"
                     echo "Build environment: ${params.BUILD_ENVIRONMENT}"
                     
-                    // Only allow prod builds from main, dev from dev
-                    if (params.BUILD_ENVIRONMENT == 'prod' && BRANCH_NAME != 'main') {
-                        error "Production builds can only be triggered from main branch"
-                    }
+                    // Strict branch-to-environment mapping
                     if (params.BUILD_ENVIRONMENT == 'dev' && BRANCH_NAME != 'dev') {
                         error "Development builds can only be triggered from dev branch"
+                    }
+                    if (params.BUILD_ENVIRONMENT == 'prod' && BRANCH_NAME != 'main') {
+                        error "Production builds can only be triggered from main branch"
                     }
                     
                     // Verify required files exist
@@ -82,7 +83,11 @@ pipeline {
                     echo "Attempting to access credential: ${credentialId}"
                     try {
                         withCredentials([file(credentialsId: credentialId, variable: 'ENV_FILE_CONTENT')]) {
-                            writeFile file: ENV_FILE, text: readFile(ENV_FILE_CONTENT)
+                            // Create the .env file in the workspace
+                            sh """
+                                cp \$ENV_FILE_CONTENT ${ENV_FILE}
+                                chmod 600 ${ENV_FILE}
+                            """
                             echo "Successfully created ${ENV_FILE} from credentials"
                         }
                     } catch (Exception e) {
