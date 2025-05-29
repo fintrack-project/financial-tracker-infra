@@ -2,199 +2,239 @@ pipeline {
     agent any
 
     environment {
-        JAVA_HOME = '/opt/jdk-21'
-        PATH = "${JAVA_HOME}/bin:${env.PATH}"
-        QUAY_REPO_BACKEND = 'quay.io/johnkim1/financial-tracker-backend'
-        QUAY_REPO_FRONTEND = 'quay.io/johnkim1/financial-tracker-frontend'
-        QUAY_REPO_ETL = 'quay.io/johnkim1/financial-tracker-etl'
-        QUAY_REPO_DB = 'quay.io/johnkim1/financial-tracker-db'
-        DATABASE_NETWORK_NAME = 'fintrack-network'
+        DOCKER_REGISTRY = 'quay.io/johnkim1'
+        BUILD_NUMBER = env.BUILD_NUMBER
+        SERVICES = ['frontend', 'backend', 'etl']
+        BRANCH_NAME = env.BRANCH_NAME
+        BASE_COMPOSE = 'docker-compose.yml'
+        ENV_COMPOSE = "docker-compose.${params.BUILD_ENVIRONMENT}.yml"
+        ENV_FILE = ".env.${params.BUILD_ENVIRONMENT}"
+        // Add timeout for health checks
+        HEALTH_CHECK_TIMEOUT = '300' // 5 minutes
+        HEALTH_CHECK_INTERVAL = '10' // 10 seconds
+    }
+
+    parameters {
+        choice(
+            name: 'BUILD_ENVIRONMENT',
+            choices: ['dev', 'prod'],
+            description: 'Select environment to build for'
+        )
+        string(
+            name: 'VERSION_MAJOR',
+            defaultValue: '1',
+            description: 'Major version number'
+        )
+        string(
+            name: 'VERSION_MINOR',
+            defaultValue: '0',
+            description: 'Minor version number'
+        )
+        string(
+            name: 'VERSION_PATCH',
+            defaultValue: '0',
+            description: 'Patch version number'
+        )
+        choice(
+            name: 'SERVICES_TO_BUILD',
+            choices: ['all', 'frontend', 'backend', 'etl'],
+            description: 'Select services to build'
+        )
+        choice(
+            name: 'PUSH_IMAGES',
+            choices: ['yes', 'no'],
+            description: 'Push images to registry after build'
+        )
+        choice(
+            name: 'DEPLOY_AFTER_BUILD',
+            choices: ['yes', 'no'],
+            description: 'Deploy services after build'
+        )
     }
 
     stages {
-        stage('Clone') {
+        stage('Validate Environment') {
             steps {
                 script {
-                    // Clone backend repository
-                    echo 'Cloning backend repository...'
-                    dir('backend') {
-                        git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-backend.git'
+                    // Only allow prod builds from main, dev from dev
+                    if (params.BUILD_ENVIRONMENT == 'prod' && BRANCH_NAME != 'main') {
+                        error "Production builds can only be triggered from main branch"
                     }
-                    echo 'Backend repository cloned.'
-
-                    // Clone frontend repository
-                    echo 'Cloning frontend repository...'
-                    dir('frontend') {
-                        git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-frontend.git'
+                    if (params.BUILD_ENVIRONMENT == 'dev' && BRANCH_NAME != 'dev') {
+                        error "Development builds can only be triggered from dev branch"
                     }
-                    echo 'Frontend repository cloned.'
-
-                    // Clone ETL repository
-                    echo 'Cloning ETL repository...'
-                    dir('etl') {
-                        git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-etl.git'
-                    }
-                    echo 'ETL repository cloned.'
-
-                    // Clone DB repository
-                    echo 'Cloning DB repository...'
-                    dir('db') {
-                        git branch: '1-deploy-this-app-with-minimum-viable-features', url: 'https://github.com/fintrack-project/financial-tracker-db.git'
-                    }
-                    echo 'DB repository cloned.'
-                }
-            }
-        }
-
-        stage('Build') {
-            steps {
-                script {
-                    // Log environment information
-                    echo '=== Environment Information ==='
-                    sh '''
-                        echo "Java Version:"
-                        java -version
-                        echo "\nMaven Version:"
-                        mvn -version
-                        echo "\nNode Version:"
-                        node -v
-                        echo "\nNPM Version:"
-                        npm -v
-                        echo "\nPython Version:"
-                        python3 --version
-                        echo "\nCurrent Directory:"
-                        pwd
-                        echo "\nDirectory Contents:"
-                        ls -la
-                        echo "\nJAVA_HOME:"
-                        echo $JAVA_HOME
-                    '''
                     
-                    // Build backend
-                    dir('backend') {
-                        echo '=== Building Backend ==='
-                        echo 'Current Directory:'
-                        sh 'pwd'
-                        echo 'Directory Contents:'
-                        sh 'ls -la'
-                        echo 'Checking pom.xml content:'
-                        sh 'cat pom.xml | grep -A 5 "<properties>"'
-                        echo 'Building with Maven...'
-                        sh 'mvn clean package -Dmaven.compiler.source=21 -Dmaven.compiler.target=21 -Dmaven.compiler.release=21'
-                        echo 'Backend build completed.'
+                    // Verify required files exist
+                    if (!fileExists(BASE_COMPOSE)) {
+                        error "Base docker-compose file ${BASE_COMPOSE} not found"
                     }
-                    // Build frontend
-                    dir('frontend') {
-                        echo '=== Building Frontend ==='
-                        echo 'Current Directory:'
-                        sh 'pwd'
-                        echo 'Directory Contents:'
-                        sh 'ls -la'
-                        echo 'Installing dependencies...'
-                        sh 'npm install'
-                        echo 'Building frontend...'
-                        sh 'npm run build'
-                        echo 'Frontend build completed.'
+                    if (!fileExists(ENV_COMPOSE)) {
+                        error "Environment docker-compose file ${ENV_COMPOSE} not found"
                     }
-                    // Setup ETL
-                    dir('etl') {
-                        echo '=== Setting up ETL ==='
-                        echo 'Current Directory:'
-                        sh 'pwd'
-                        echo 'Directory Contents:'
-                        sh 'ls -la'
-                        echo 'Creating Python virtual environment...'
-                        sh 'python3 -m venv venv'
-                        echo 'Installing Python dependencies...'
-                        sh '. venv/bin/activate && pip install -r requirements.txt'
-                        echo 'ETL setup completed.'
+                    if (!fileExists(ENV_FILE)) {
+                        error "Environment file ${ENV_FILE} not found"
+                    }
+
+                    // Validate required environment variables
+                    def requiredVars = [
+                        'DATABASE_NAME',
+                        'POSTGRES_USER',
+                        'POSTGRES_PASSWORD',
+                        'DATABASE_INTERNAL_PORT',
+                        'DATABASE_HOST_PORT'
+                    ]
+                    
+                    def missingVars = []
+                    requiredVars.each { var ->
+                        if (!env[var]) {
+                            missingVars.add(var)
+                        }
+                    }
+                    
+                    if (missingVars) {
+                        error "Missing required environment variables: ${missingVars.join(', ')}"
                     }
                 }
             }
         }
 
-        stage('Dockerize - Build Images') {
+        stage('Build Images') {
             steps {
                 script {
-                    // Dockerize backend
-                    dir('backend') {
-                        echo 'Dockerizing backend $QUAY_REPO_BACKEND:latest...'
-                        sh 'docker build -t $QUAY_REPO_BACKEND:latest .'
-                        echo 'Backend Dockerized.'
-                    }
-                    // Dockerize frontend
-                    dir('frontend') {
-                        echo 'Dockerizing frontend $QUAY_REPO_FRONTEND:latest...'
-                        sh 'docker build -t $QUAY_REPO_FRONTEND:latest .'
-                        echo 'Frontend Dockerized.'
-                    }
-                    // Dockerize ETL
-                    dir('etl') {
-                        echo 'Dockerizing ETL $QUAY_REPO_ETL:latest...'
-                        sh 'docker build -t $QUAY_REPO_ETL:latest .'
-                        echo 'ETL Dockerized.'
-                    }
-                    // Dockerize DB
-                    dir('db') {
-                        echo 'Dockerizing DB $QUAY_REPO_DB:latest...'
-                        sh 'docker build -t $QUAY_REPO_DB:latest .'
-                        echo 'DB Dockerized.'
+                    def fullVersion = "${params.VERSION_MAJOR}.${params.VERSION_MINOR}.${params.VERSION_PATCH}-${params.BUILD_ENVIRONMENT}-${BUILD_NUMBER}"
+                    def servicesToBuild = params.SERVICES_TO_BUILD == 'all' ? SERVICES : [params.SERVICES_TO_BUILD]
+
+                    servicesToBuild.each { service ->
+                        echo "Building ${service} for ${params.BUILD_ENVIRONMENT} environment"
+                        sh """
+                            docker build -t ${DOCKER_REGISTRY}/${service}:${fullVersion} \
+                                         -t ${DOCKER_REGISTRY}/${service}:${params.BUILD_ENVIRONMENT}-latest \
+                                         ../financial-tracker-${service}
+                        """
                     }
                 }
             }
         }
 
-        stage('Push Docker Images to Quay') {
+        stage('Push Images') {
+            when {
+                expression { params.PUSH_IMAGES == 'yes' }
+            }
             steps {
                 script {
+                    def fullVersion = "${params.VERSION_MAJOR}.${params.VERSION_MINOR}.${params.VERSION_PATCH}-${params.BUILD_ENVIRONMENT}-${BUILD_NUMBER}"
+                    def servicesToPush = params.SERVICES_TO_BUILD == 'all' ? SERVICES : [params.SERVICES_TO_BUILD]
+
                     withCredentials([usernamePassword(credentialsId: 'quay-credentials', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD')]) {
-                        echo 'Logging in to Quay.io...'
-                        sh '''
+                        sh """
                             echo $QUAY_PASSWORD | docker login quay.io --username $QUAY_USERNAME --password-stdin
-                        '''
-
-                        // Push backend image
-                        echo 'Pushing backend image to $QUAY_REPO_BACKEND:latest...'
-                        sh 'docker push $QUAY_REPO_BACKEND:latest'
-                        echo 'Backend image pushed.'
-
-                        // Push frontend image
-                        echo 'Pushing frontend image to $QUAY_REPO_FRONTEND:latest...'
-                        sh 'docker push $QUAY_REPO_FRONTEND:latest'
-                        echo 'Frontend image pushed.'
-
-                        // Push ETL image
-                        echo 'Pushing ETL image to $QUAY_REPO_ETL:latest...'
-                        sh 'docker push $QUAY_REPO_ETL:latest'
-                        echo 'ETL image pushed.'
-
-                        // Push DB image
-                        echo 'Pushing DB image to $QUAY_REPO_DB:latest...'
-                        sh 'docker push $QUAY_REPO_DB:latest'
-                        echo 'DB image pushed.'
+                        """
+                        servicesToPush.each { service ->
+                            echo "Pushing ${service} for ${params.BUILD_ENVIRONMENT} environment"
+                            sh """
+                                docker push ${DOCKER_REGISTRY}/${service}:${fullVersion}
+                                docker push ${DOCKER_REGISTRY}/${service}:${params.BUILD_ENVIRONMENT}-latest
+                            """
+                        }
                     }
                 }
             }
         }
 
-        stage('Test') {
-            steps {
-                echo 'Testing...'
+        stage('Deploy Services') {
+            when {
+                expression { params.DEPLOY_AFTER_BUILD == 'yes' }
             }
-        }
-
-        stage('Deploy') {
             steps {
                 script {
-                    echo 'Creating Docker network if it does not exist...'
-                    sh '''
-                        if ! docker network ls | grep -q ${DATABASE_NETWORK_NAME}; then
-                            docker network create ${DATABASE_NETWORK_NAME}
-                        fi
-                    '''
+                    echo "Deploying services for ${params.BUILD_ENVIRONMENT} environment"
                     
-                    echo 'Deploying services...'
-                    sh 'docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d'
+                    // Create network if it doesn't exist
+                    sh """
+                        if ! docker network ls | grep -q fintrack-network; then
+                            docker network create fintrack-network
+                        fi
+                    """
+                    
+                    // Build compose command similar to start.sh
+                    def composeCmd = "docker compose --env-file ${ENV_FILE} -f ${BASE_COMPOSE} -f ${ENV_COMPOSE}"
+                    def servicesToDeploy = params.SERVICES_TO_BUILD == 'all' ? '' : params.SERVICES_TO_BUILD
+                    
+                    // Deploy using the compose command
+                    sh """
+                        ${composeCmd} up -d ${servicesToDeploy}
+                    """
+
+                    // Wait for services to be healthy
+                    def startTime = System.currentTimeMillis()
+                    def timeout = HEALTH_CHECK_TIMEOUT.toInteger() * 1000
+                    def interval = HEALTH_CHECK_INTERVAL.toInteger() * 1000
+
+                    while (System.currentTimeMillis() - startTime < timeout) {
+                        def status = sh(
+                            script: "${composeCmd} ps --format json",
+                            returnStdout: true
+                        ).trim()
+                        
+                        def allHealthy = true
+                        def services = new groovy.json.JsonSlurper().parseText(status)
+                        services.each { service ->
+                            if (service.State != "running" || service.Health != "healthy") {
+                                allHealthy = false
+                            }
+                        }
+                        
+                        if (allHealthy) {
+                            echo "All services are healthy"
+                            break
+                        }
+                        
+                        echo "Waiting for services to be healthy..."
+                        sleep(interval)
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                def fullVersion = "${params.VERSION_MAJOR}.${params.VERSION_MINOR}.${params.VERSION_PATCH}-${params.BUILD_ENVIRONMENT}-${BUILD_NUMBER}"
+                echo "Successfully built images for ${params.BUILD_ENVIRONMENT} environment"
+                echo "Version: ${fullVersion}"
+                if (params.PUSH_IMAGES == 'yes') {
+                    echo "Images were pushed to registry"
+                } else {
+                    echo "Images were built but not pushed to registry"
+                }
+                if (params.DEPLOY_AFTER_BUILD == 'yes') {
+                    echo "Services were deployed using ${BASE_COMPOSE} and ${ENV_COMPOSE}"
+                }
+            }
+        }
+        failure {
+            script {
+                echo "Failed to build, push, or deploy services"
+                if (params.DEPLOY_AFTER_BUILD == 'yes') {
+                    // Attempt to rollback on failure
+                    def composeCmd = "docker compose --env-file ${ENV_FILE} -f ${BASE_COMPOSE} -f ${ENV_COMPOSE}"
+                    def servicesToRollback = params.SERVICES_TO_BUILD == 'all' ? '' : params.SERVICES_TO_BUILD
+                    
+                    echo "Attempting to rollback deployment..."
+                    sh """
+                        ${composeCmd} down ${servicesToRollback}
+                    """
+                }
+            }
+        }
+        always {
+            // Cleanup
+            script {
+                if (params.DEPLOY_AFTER_BUILD == 'yes') {
+                    sh """
+                        docker system prune -f
+                    """
                 }
             }
         }
