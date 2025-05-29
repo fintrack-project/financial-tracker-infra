@@ -134,11 +134,21 @@ pipeline {
                             git clone -b ${targetBranch} ${repoUrl} ../financial-tracker-${service}
                         """
                         
-                        sh """
+                        // Build command with appropriate tags
+                        def buildCmd = """
                             docker build -t ${DOCKER_REGISTRY}/${repoName}:${fullVersion} \
                                          -t ${DOCKER_REGISTRY}/${repoName}:${params.BUILD_ENVIRONMENT}-latest \
                                          ../financial-tracker-${service}
                         """
+                        
+                        // Add 'latest' tag for production builds
+                        if (params.BUILD_ENVIRONMENT == 'prod') {
+                            buildCmd += """
+                                && docker tag ${DOCKER_REGISTRY}/${repoName}:${fullVersion} ${DOCKER_REGISTRY}/${repoName}:latest
+                            """
+                        }
+                        
+                        sh buildCmd
                     }
                 }
             }
@@ -196,6 +206,13 @@ pipeline {
                                     docker push ${DOCKER_REGISTRY}/${repoName}:${fullVersion}
                                     docker push ${DOCKER_REGISTRY}/${repoName}:${params.BUILD_ENVIRONMENT}-latest
                                 """
+                                
+                                // Push 'latest' tag for production builds
+                                if (params.BUILD_ENVIRONMENT == 'prod') {
+                                    sh """
+                                        docker push ${DOCKER_REGISTRY}/${repoName}:latest
+                                    """
+                                }
                             } catch (Exception e) {
                                 error """
                                     Failed to push ${service} (${repoName}) images: ${e.message}
