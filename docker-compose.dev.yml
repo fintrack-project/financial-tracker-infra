@@ -113,7 +113,7 @@ services:
     networks:
       - fintrack-network
   db:
-    image: postgres:15
+    image: postgres:latest
     ports:
       - "${DATABASE_HOST_PORT}:${DATABASE_INTERNAL_PORT}"
     environment:

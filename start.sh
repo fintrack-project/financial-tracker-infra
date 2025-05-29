@@ -37,6 +37,12 @@ if [ "$ENV" != "dev" ] && [ "$ENV" != "prod" ]; then
     exit 1
 fi
 
+# Create network if it doesn't exist
+if ! docker network ls | grep -q fintrack-network; then
+    echo "Creating fintrack-network..."
+    docker network create fintrack-network
+fi
+
 # Build the docker-compose command
 COMPOSE_CMD="docker compose --env-file .env.$ENV -f docker-compose.yml"
 
