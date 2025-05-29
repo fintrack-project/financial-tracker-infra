@@ -13,6 +13,10 @@ pipeline {
         // Add timeout for health checks
         HEALTH_CHECK_TIMEOUT = '300' // 5 minutes
         HEALTH_CHECK_INTERVAL = '10' // 10 seconds
+        // Service repositories (only for services we build)
+        FRONTEND_REPO = 'https://github.com/fintrack-project/financial-tracker-frontend'
+        BACKEND_REPO = 'https://github.com/fintrack-project/financial-tracker-backend'
+        ETL_REPO = 'https://github.com/fintrack-project/financial-tracker-etl'
     }
 
     parameters {
@@ -100,9 +104,18 @@ pipeline {
                 script {
                     def fullVersion = "${params.VERSION_MAJOR}.${params.VERSION_MINOR}.${params.VERSION_PATCH}-${params.BUILD_ENVIRONMENT}-${BUILD_NUMBER}"
                     def servicesToBuild = params.SERVICES_TO_BUILD == 'all' ? SERVICES.split(',') : [params.SERVICES_TO_BUILD]
+                    def targetBranch = params.BUILD_ENVIRONMENT == 'prod' ? 'main' : 'dev'
 
                     servicesToBuild.each { service ->
-                        echo "Building ${service} for ${params.BUILD_ENVIRONMENT} environment"
+                        echo "Building ${service} for ${params.BUILD_ENVIRONMENT} environment from ${targetBranch} branch"
+                        
+                        // Clone the service repository with the appropriate branch
+                        def repoUrl = "${service.toUpperCase()}_REPO"
+                        sh """
+                            rm -rf ../financial-tracker-${service}
+                            git clone -b ${targetBranch} ${env[repoUrl]} ../financial-tracker-${service}
+                        """
+                        
                         sh """
                             docker build -t ${DOCKER_REGISTRY}/${service}:${fullVersion} \
                                          -t ${DOCKER_REGISTRY}/${service}:${params.BUILD_ENVIRONMENT}-latest \
