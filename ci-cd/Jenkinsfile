@@ -151,15 +151,21 @@ pipeline {
                     def servicesToPush = params.SERVICES_TO_BUILD == 'all' ? SERVICES.split(',') : [params.SERVICES_TO_BUILD]
 
                     withCredentials([usernamePassword(credentialsId: 'quay-credentials', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD')]) {
-                        sh """
-                            echo $QUAY_PASSWORD | docker login quay.io --username $QUAY_USERNAME --password-stdin
-                        """
+                        // Login to Docker registry using a more secure method
+                        sh '''
+                            echo "$QUAY_PASSWORD" | docker login quay.io --username "$QUAY_USERNAME" --password-stdin
+                        '''
+                        
                         servicesToPush.each { service ->
                             echo "Pushing ${service} for ${params.BUILD_ENVIRONMENT} environment"
-                            sh """
-                                docker push ${DOCKER_REGISTRY}/${service}:${fullVersion}
-                                docker push ${DOCKER_REGISTRY}/${service}:${params.BUILD_ENVIRONMENT}-latest
-                            """
+                            try {
+                                sh """
+                                    docker push ${DOCKER_REGISTRY}/${service}:${fullVersion}
+                                    docker push ${DOCKER_REGISTRY}/${service}:${params.BUILD_ENVIRONMENT}-latest
+                                """
+                            } catch (Exception e) {
+                                error "Failed to push ${service} images: ${e.message}. Please verify that the Jenkins bot user has write access to the repository."
+                            }
                         }
                     }
                 }
