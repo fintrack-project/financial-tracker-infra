@@ -56,6 +56,9 @@ pipeline {
         stage('Validate Environment') {
             steps {
                 script {
+                    echo "Current branch: ${BRANCH_NAME}"
+                    echo "Build environment: ${params.BUILD_ENVIRONMENT}"
+                    
                     // Only allow prod builds from main, dev from dev
                     if (params.BUILD_ENVIRONMENT == 'prod' && BRANCH_NAME != 'main') {
                         error "Production builds can only be triggered from main branch"
@@ -65,17 +68,25 @@ pipeline {
                     }
                     
                     // Verify required files exist
+                    echo "Checking for ${BASE_COMPOSE}..."
                     if (!fileExists(BASE_COMPOSE)) {
                         error "Base docker-compose file ${BASE_COMPOSE} not found"
                     }
+                    echo "Checking for ${ENV_COMPOSE}..."
                     if (!fileExists(ENV_COMPOSE)) {
                         error "Environment docker-compose file ${ENV_COMPOSE} not found"
                     }
 
                     // Get environment file from Jenkins credentials
                     def credentialId = "env-${params.BUILD_ENVIRONMENT}-file"
-                    withCredentials([file(credentialsId: credentialId, variable: 'ENV_FILE_CONTENT')]) {
-                        writeFile file: ENV_FILE, text: readFile(ENV_FILE_CONTENT)
+                    echo "Attempting to access credential: ${credentialId}"
+                    try {
+                        withCredentials([file(credentialsId: credentialId, variable: 'ENV_FILE_CONTENT')]) {
+                            writeFile file: ENV_FILE, text: readFile(ENV_FILE_CONTENT)
+                            echo "Successfully created ${ENV_FILE} from credentials"
+                        }
+                    } catch (Exception e) {
+                        error "Failed to access credential ${credentialId}: ${e.message}"
                     }
                 }
             }
