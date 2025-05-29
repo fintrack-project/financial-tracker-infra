@@ -54,11 +54,6 @@ pipeline {
             choices: ['yes', 'no'],
             description: 'Push images to registry after build'
         )
-        choice(
-            name: 'DEPLOY_AFTER_BUILD',
-            choices: ['yes', 'no'],
-            description: 'Deploy services after build'
-        )
     }
 
     stages {
@@ -222,61 +217,6 @@ pipeline {
                 }
             }
         }
-
-        stage('Deploy Services') {
-            when {
-                expression { params.DEPLOY_AFTER_BUILD == 'yes' }
-            }
-            steps {
-                script {
-                    echo "Deploying services for ${params.BUILD_ENVIRONMENT} environment"
-                    
-                    // Create network if it doesn't exist
-                    sh """
-                        if ! docker network ls | grep -q fintrack-network; then
-                            docker network create fintrack-network
-                        fi
-                    """
-                    
-                    // Build compose command similar to start.sh
-                    def composeCmd = "docker compose --env-file ${ENV_FILE} -f ${BASE_COMPOSE} -f ${ENV_COMPOSE}"
-                    def servicesToDeploy = params.SERVICES_TO_BUILD == 'all' ? '' : params.SERVICES_TO_BUILD
-                    
-                    // Deploy using the compose command
-                    sh """
-                        ${composeCmd} up -d ${servicesToDeploy}
-                    """
-
-                    // Wait for services to be healthy
-                    def startTime = System.currentTimeMillis()
-                    def timeout = HEALTH_CHECK_TIMEOUT.toInteger() * 1000
-                    def interval = HEALTH_CHECK_INTERVAL.toInteger() * 1000
-
-                    while (System.currentTimeMillis() - startTime < timeout) {
-                        def status = sh(
-                            script: "${composeCmd} ps --format json",
-                            returnStdout: true
-                        ).trim()
-                        
-                        def allHealthy = true
-                        def services = new groovy.json.JsonSlurper().parseText(status)
-                        services.each { service ->
-                            if (service.State != "running" || service.Health != "healthy") {
-                                allHealthy = false
-                            }
-                        }
-                        
-                        if (allHealthy) {
-                            echo "All services are healthy"
-                            break
-                        }
-                        
-                        echo "Waiting for services to be healthy..."
-                        sleep(interval)
-                    }
-                }
-            }
-        }
     }
 
     post {
@@ -290,34 +230,19 @@ pipeline {
                 } else {
                     echo "Images were built but not pushed to registry"
                 }
-                if (params.DEPLOY_AFTER_BUILD == 'yes') {
-                    echo "Services were deployed using ${BASE_COMPOSE} and ${ENV_COMPOSE}"
-                }
             }
         }
         failure {
             script {
-                echo "Failed to build, push, or deploy services"
-                if (params.DEPLOY_AFTER_BUILD == 'yes') {
-                    // Attempt to rollback on failure
-                    def composeCmd = "docker compose --env-file ${ENV_FILE} -f ${BASE_COMPOSE} -f ${ENV_COMPOSE}"
-                    def servicesToRollback = params.SERVICES_TO_BUILD == 'all' ? '' : params.SERVICES_TO_BUILD
-                    
-                    echo "Attempting to rollback deployment..."
-                    sh """
-                        ${composeCmd} down ${servicesToRollback}
-                    """
-                }
+                echo "Failed to build or push services"
             }
         }
         always {
             // Cleanup
             script {
-                if (params.DEPLOY_AFTER_BUILD == 'yes') {
-                    sh """
-                        docker system prune -f
-                    """
-                }
+                sh """
+                    docker system prune -f
+                """
             }
         }
     }
