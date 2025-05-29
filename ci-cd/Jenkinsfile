@@ -17,6 +17,12 @@ pipeline {
         FRONTEND_REPO = 'https://github.com/fintrack-project/financial-tracker-frontend'
         BACKEND_REPO = 'https://github.com/fintrack-project/financial-tracker-backend'
         ETL_REPO = 'https://github.com/fintrack-project/financial-tracker-etl'
+        // Map service names to their repository names
+        REPO_NAMES = [
+            'frontend': 'financial-tracker-frontend',
+            'backend': 'financial-tracker-backend',
+            'etl': 'financial-tracker-etl'
+        ]
     }
 
     parameters {
@@ -132,8 +138,8 @@ pipeline {
                         """
                         
                         sh """
-                            docker build -t ${DOCKER_REGISTRY}/${service}:${fullVersion} \
-                                         -t ${DOCKER_REGISTRY}/${service}:${params.BUILD_ENVIRONMENT}-latest \
+                            docker build -t ${DOCKER_REGISTRY}/${REPO_NAMES[service]}:${fullVersion} \
+                                         -t ${DOCKER_REGISTRY}/${REPO_NAMES[service]}:${params.BUILD_ENVIRONMENT}-latest \
                                          ../financial-tracker-${service}
                         """
                     }
@@ -153,45 +159,45 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'quay-credentials', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD')]) {
                         // Login to Docker registry using a more secure method
                         sh '''
+                            # Remove any existing credentials
+                            rm -f $HOME/.docker/config.json
+                            
+                            # Login to Quay.io
                             echo "$QUAY_PASSWORD" | docker login quay.io --username "$QUAY_USERNAME" --password-stdin
                             
                             # Debug information
                             echo "Current user: $(whoami)"
                             echo "Docker config location: $HOME/.docker/config.json"
                             echo "Docker config permissions: $(ls -l $HOME/.docker/config.json)"
-                            echo "Testing repository access..."
-                            curl -s -u "$QUAY_USERNAME:$QUAY_PASSWORD" https://quay.io/api/v1/repository/johnkim1/frontend
                         '''
                         
                         servicesToPush.each { service ->
-                            echo "Pushing ${service} for ${params.BUILD_ENVIRONMENT} environment"
+                            def repoName = REPO_NAMES[service]
+                            echo "Pushing ${service} (${repoName}) for ${params.BUILD_ENVIRONMENT} environment"
                             try {
-                                // First, try to create the repository if it doesn't exist
+                                // First try to pull the repository to ensure it exists
                                 sh """
-                                    # Try to create repository if it doesn't exist
-                                    curl -s -X POST \
-                                        -H "Content-Type: application/json" \
-                                        -u "$QUAY_USERNAME:$QUAY_PASSWORD" \
-                                        https://quay.io/api/v1/repository \
-                                        -d '{"namespace": "johnkim1", "repository": "${service}", "visibility": "public", "description": "Financial Tracker ${service} service"}'
-                                    
-                                    # Wait a moment for repository creation to propagate
-                                    sleep 5
+                                    # Try to pull the repository first
+                                    docker pull ${DOCKER_REGISTRY}/${repoName}:latest || true
                                     
                                     # Now try to push
-                                    docker push ${DOCKER_REGISTRY}/${service}:${fullVersion}
-                                    docker push ${DOCKER_REGISTRY}/${service}:${params.BUILD_ENVIRONMENT}-latest
+                                    docker push ${DOCKER_REGISTRY}/${repoName}:${fullVersion}
+                                    docker push ${DOCKER_REGISTRY}/${repoName}:${params.BUILD_ENVIRONMENT}-latest
                                 """
                             } catch (Exception e) {
                                 error """
-                                    Failed to push ${service} images: ${e.message}
-                                    Please verify:
-                                    1. The repository exists in Quay.io
-                                    2. The Jenkins bot user has write access to the repository
-                                    3. The repository name matches exactly: ${DOCKER_REGISTRY}/${service}
+                                    Failed to push ${service} (${repoName}) images: ${e.message}
                                     
-                                    You can check repository access with:
-                                    curl -s -u "$QUAY_USERNAME:$QUAY_PASSWORD" https://quay.io/api/v1/repository/johnkim1/${service}
+                                    Please verify:
+                                    1. The repository exists in Quay.io (create it manually if needed)
+                                    2. The Jenkins bot user has write access to the repository
+                                    3. The repository name matches exactly: ${DOCKER_REGISTRY}/${repoName}
+                                    
+                                    Steps to fix:
+                                    1. Go to https://quay.io/repository/johnkim1/${repoName}
+                                    2. Go to repository settings
+                                    3. Under 'User and Robot Permissions'
+                                    4. Add robot account 'johnkim1+jenkins_bot' with Write permissions
                                 """
                             }
                         }
