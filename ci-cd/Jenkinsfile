@@ -17,12 +17,10 @@ pipeline {
         FRONTEND_REPO = 'https://github.com/fintrack-project/financial-tracker-frontend'
         BACKEND_REPO = 'https://github.com/fintrack-project/financial-tracker-backend'
         ETL_REPO = 'https://github.com/fintrack-project/financial-tracker-etl'
-        // Map service names to their repository names
-        REPO_NAMES = [
-            'frontend': 'financial-tracker-frontend',
-            'backend': 'financial-tracker-backend',
-            'etl': 'financial-tracker-etl'
-        ]
+        // Repository names
+        FRONTEND_REPO_NAME = 'financial-tracker-frontend'
+        BACKEND_REPO_NAME = 'financial-tracker-backend'
+        ETL_REPO_NAME = 'financial-tracker-etl'
     }
 
     parameters {
@@ -115,17 +113,21 @@ pipeline {
                     servicesToBuild.each { service ->
                         echo "Building ${service} for ${params.BUILD_ENVIRONMENT} environment from ${targetBranch} branch"
                         
-                        // Get repository URL based on service
+                        // Get repository URL and name based on service
                         def repoUrl
+                        def repoName
                         switch(service) {
                             case 'frontend':
                                 repoUrl = FRONTEND_REPO
+                                repoName = FRONTEND_REPO_NAME
                                 break
                             case 'backend':
                                 repoUrl = BACKEND_REPO
+                                repoName = BACKEND_REPO_NAME
                                 break
                             case 'etl':
                                 repoUrl = ETL_REPO
+                                repoName = ETL_REPO_NAME
                                 break
                             default:
                                 error "Unknown service: ${service}"
@@ -138,8 +140,8 @@ pipeline {
                         """
                         
                         sh """
-                            docker build -t ${DOCKER_REGISTRY}/${REPO_NAMES[service]}:${fullVersion} \
-                                         -t ${DOCKER_REGISTRY}/${REPO_NAMES[service]}:${params.BUILD_ENVIRONMENT}-latest \
+                            docker build -t ${DOCKER_REGISTRY}/${repoName}:${fullVersion} \
+                                         -t ${DOCKER_REGISTRY}/${repoName}:${params.BUILD_ENVIRONMENT}-latest \
                                          ../financial-tracker-${service}
                         """
                     }
@@ -172,7 +174,22 @@ pipeline {
                         '''
                         
                         servicesToPush.each { service ->
-                            def repoName = REPO_NAMES[service]
+                            // Get repository name based on service
+                            def repoName
+                            switch(service) {
+                                case 'frontend':
+                                    repoName = FRONTEND_REPO_NAME
+                                    break
+                                case 'backend':
+                                    repoName = BACKEND_REPO_NAME
+                                    break
+                                case 'etl':
+                                    repoName = ETL_REPO_NAME
+                                    break
+                                default:
+                                    error "Unknown service: ${service}"
+                            }
+                            
                             echo "Pushing ${service} (${repoName}) for ${params.BUILD_ENVIRONMENT} environment"
                             try {
                                 // First try to pull the repository to ensure it exists
