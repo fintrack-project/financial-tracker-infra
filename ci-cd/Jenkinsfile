@@ -154,17 +154,45 @@ pipeline {
                         // Login to Docker registry using a more secure method
                         sh '''
                             echo "$QUAY_PASSWORD" | docker login quay.io --username "$QUAY_USERNAME" --password-stdin
+                            
+                            # Debug information
+                            echo "Current user: $(whoami)"
+                            echo "Docker config location: $HOME/.docker/config.json"
+                            echo "Docker config permissions: $(ls -l $HOME/.docker/config.json)"
+                            echo "Testing repository access..."
+                            curl -s -u "$QUAY_USERNAME:$QUAY_PASSWORD" https://quay.io/api/v1/repository/johnkim1/frontend
                         '''
                         
                         servicesToPush.each { service ->
                             echo "Pushing ${service} for ${params.BUILD_ENVIRONMENT} environment"
                             try {
+                                // First, try to create the repository if it doesn't exist
                                 sh """
+                                    # Try to create repository if it doesn't exist
+                                    curl -s -X POST \
+                                        -H "Content-Type: application/json" \
+                                        -u "$QUAY_USERNAME:$QUAY_PASSWORD" \
+                                        https://quay.io/api/v1/repository \
+                                        -d '{"namespace": "johnkim1", "repository": "${service}", "visibility": "public", "description": "Financial Tracker ${service} service"}'
+                                    
+                                    # Wait a moment for repository creation to propagate
+                                    sleep 5
+                                    
+                                    # Now try to push
                                     docker push ${DOCKER_REGISTRY}/${service}:${fullVersion}
                                     docker push ${DOCKER_REGISTRY}/${service}:${params.BUILD_ENVIRONMENT}-latest
                                 """
                             } catch (Exception e) {
-                                error "Failed to push ${service} images: ${e.message}. Please verify that the Jenkins bot user has write access to the repository."
+                                error """
+                                    Failed to push ${service} images: ${e.message}
+                                    Please verify:
+                                    1. The repository exists in Quay.io
+                                    2. The Jenkins bot user has write access to the repository
+                                    3. The repository name matches exactly: ${DOCKER_REGISTRY}/${service}
+                                    
+                                    You can check repository access with:
+                                    curl -s -u "$QUAY_USERNAME:$QUAY_PASSWORD" https://quay.io/api/v1/repository/johnkim1/${service}
+                                """
                             }
                         }
                     }
