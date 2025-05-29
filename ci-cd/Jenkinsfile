@@ -109,11 +109,26 @@ pipeline {
                     servicesToBuild.each { service ->
                         echo "Building ${service} for ${params.BUILD_ENVIRONMENT} environment from ${targetBranch} branch"
                         
+                        // Get repository URL based on service
+                        def repoUrl
+                        switch(service) {
+                            case 'frontend':
+                                repoUrl = FRONTEND_REPO
+                                break
+                            case 'backend':
+                                repoUrl = BACKEND_REPO
+                                break
+                            case 'etl':
+                                repoUrl = ETL_REPO
+                                break
+                            default:
+                                error "Unknown service: ${service}"
+                        }
+                        
                         // Clone the service repository with the appropriate branch
-                        def repoUrl = "${service.toUpperCase()}_REPO"
                         sh """
                             rm -rf ../financial-tracker-${service}
-                            git clone -b ${targetBranch} ${env[repoUrl]} ../financial-tracker-${service}
+                            git clone -b ${targetBranch} ${repoUrl} ../financial-tracker-${service}
                         """
                         
                         sh """
