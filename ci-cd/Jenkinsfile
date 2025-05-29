@@ -60,10 +60,8 @@ pipeline {
                     echo "Current branch: ${BRANCH_NAME}"
                     echo "Build environment: ${params.BUILD_ENVIRONMENT}"
                     
-                    // Strict branch-to-environment mapping
-                    if (params.BUILD_ENVIRONMENT == 'dev' && BRANCH_NAME != 'dev') {
-                        error "Development builds can only be triggered from dev branch"
-                    }
+                    // For infrastructure repository, we allow any branch for development
+                    // and only restrict production builds to main branch
                     if (params.BUILD_ENVIRONMENT == 'prod' && BRANCH_NAME != 'main') {
                         error "Production builds can only be triggered from main branch"
                     }
