@@ -10,9 +10,11 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
+      - REACT_APP_API_URL=http://backend:8080
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
-      - REACT_APP_API_URL=http://backend:8080
+    depends_on:
+      - backend
     command: >
       sh -c "echo 'REACT_APP_API_URL: $REACT_APP_API_URL' && npm start"
     networks:
@@ -45,10 +47,12 @@ services:
       FLYWAY_LOCATIONS: filesystem:/app/migrations
       SPRING_FLYWAY_BASELINE_ON_MIGRATE: true
       SPRING_FLYWAY_VALIDATE_ON_MIGRATE: true
-      SPRING_FLYWAY_CLEAN_DISABLED: false
-      SPRING_FLYWAY_CLEAN_ON_VALIDATION_ERROR: true
+      SPRING_FLYWAY_CLEAN_DISABLED: true
       SPRING_FLYWAY_SCHEMAS: ${DATABASE_SCHEMA_NAME}
       SPRING_FLYWAY_DEFAULT_SCHEMA: ${DATABASE_SCHEMA_NAME}
+      SPRING_FLYWAY_VALIDATE_MIGRATION_NAMING: true
+      SPRING_FLYWAY_OUT_OF_ORDER: false
+      SPRING_FLYWAY_IGNORE_MIGRATION_PATTERNS: "*:missing,*:future"
       # Stripe Configuration (Development)
       STRIPE_SECRET_KEY: ${STRIPE_TEST_SECRET_KEY}
       STRIPE_PUBLISHABLE_KEY: ${STRIPE_TEST_PUBLISHABLE_KEY}
@@ -113,7 +117,7 @@ services:
     networks:
       - fintrack-network
   db:
-    image: postgres:latest
+    image: postgres:15
     ports:
       - "${DATABASE_HOST_PORT}:${DATABASE_INTERNAL_PORT}"
     environment:
@@ -131,7 +135,7 @@ services:
     networks:
       - fintrack-network
   mailhog:
-    image: mailhog/mailhog
+    image: mailhog/mailhog:latest
     ports:
       - "${SMTP_PORT}:${SMTP_PORT}" # SMTP server
       - "${MAILHOG_PORT}:${MAILHOG_PORT}" # Web UI

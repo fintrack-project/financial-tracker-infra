@@ -13,7 +13,7 @@ services:
     environment:
       - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
       - JENKINS_OPTS=--httpPort=8080
-    user: root  # Start as root to set permissions
+    user: root
     group_add:
       - docker
     restart: unless-stopped
@@ -107,7 +107,7 @@ services:
       retries: 5
       start_period: 40s
   db:
-    image: postgres:latest
+    image: postgres:15
     volumes:
       - pgdata:/var/lib/postgresql/data
     environment:
@@ -171,7 +171,7 @@ services:
       retries: 5
 
   mailhog:
-    image: mailhog/mailhog
+    image: mailhog/mailhog:latest
     ports:
       - "${SMTP_PORT}:${SMTP_PORT}" # SMTP server
       - "${MAILHOG_PORT}:${MAILHOG_PORT}" # Web UI
