@@ -6,7 +6,7 @@ pipeline {
         BUILD_NUMBER = "${env.BUILD_NUMBER}"
         SERVICES = 'frontend,backend,etl'
         // Get branch name from git command, fallback to env.BRANCH_NAME
-        BRANCH_NAME = sh(script: 'git rev-parse --abbrev-ref HEAD || echo $BRANCH_NAME', returnStdout: true).trim()
+        BRANCH_NAME = sh(script: 'git symbolic-ref -q --short HEAD || git rev-parse --abbrev-ref HEAD || echo $BRANCH_NAME', returnStdout: true).trim()
         BASE_COMPOSE = 'docker-compose.yml'
         ENV_COMPOSE = "docker-compose.${params.BUILD_ENVIRONMENT}.yml"
         ENV_FILE = ".env.${params.BUILD_ENVIRONMENT}"
