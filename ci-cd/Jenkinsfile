@@ -141,14 +141,15 @@ pipeline {
                                          ../financial-tracker-${service}
                         """
                         
+                        sh buildCmd
+
                         // Add 'latest' tag for production builds
                         if (params.BUILD_ENVIRONMENT == 'prod') {
-                            buildCmd += """
-                                && docker tag ${DOCKER_REGISTRY}/${repoName}:${fullVersion} ${DOCKER_REGISTRY}/${repoName}:latest
+                            buildCmd = """
+                                docker tag ${DOCKER_REGISTRY}/${repoName}:${fullVersion} ${DOCKER_REGISTRY}/${repoName}:latest
                             """
+                            sh buildCmd
                         }
-                        
-                        sh buildCmd
                     }
                 }
             }
