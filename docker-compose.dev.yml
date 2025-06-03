@@ -15,8 +15,7 @@ services:
       - WATCHPACK_POLLING=true
     depends_on:
       - backend
-    command: >
-      sh -c "echo 'REACT_APP_API_URL: $REACT_APP_API_URL' && npm start"
+    command: ["sh", "-c", "echo 'REACT_APP_API_URL: $REACT_APP_API_URL'; npm start"]
     networks:
       - fintrack-network
   backend:
@@ -97,8 +96,7 @@ services:
       KAFKA_CONSUMER_HEARTBEAT_INTERVAL_MS: 20000
     volumes:
       - ../financial-tracker-etl:/app
-    command: >
-      sh -c "chmod 755 /app/entrypoint.sh && dos2unix /app/entrypoint.sh && /app/entrypoint.sh"
+    command: ["sh", "-c", "chmod 755 /app/entrypoint.sh; dos2unix /app/entrypoint.sh; /app/entrypoint.sh"]
     depends_on:
       db:
         condition: service_healthy
