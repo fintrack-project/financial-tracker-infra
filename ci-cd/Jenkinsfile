@@ -2,200 +2,264 @@ pipeline {
     agent any
 
     environment {
-        JAVA_HOME = '/opt/jdk-21'
-        PATH = "${JAVA_HOME}/bin:${env.PATH}"
-        QUAY_REPO_BACKEND = 'quay.io/johnkim1/financial-tracker-backend'
-        QUAY_REPO_FRONTEND = 'quay.io/johnkim1/financial-tracker-frontend'
-        QUAY_REPO_ETL = 'quay.io/johnkim1/financial-tracker-etl'
-        QUAY_REPO_DB = 'quay.io/johnkim1/financial-tracker-db'
-        DATABASE_NETWORK_NAME = 'fintrack-network'
+        DOCKER_REGISTRY = 'quay.io/johnkim1'
+        BUILD_NUMBER = "${env.BUILD_NUMBER}"
+        SERVICES = 'frontend,backend,etl'
+        // Get branch name from git command, fallback to env.BRANCH_NAME
+        BRANCH_NAME = sh(script: 'git rev-parse --abbrev-ref HEAD || echo $BRANCH_NAME', returnStdout: true).trim()
+        BASE_COMPOSE = 'docker-compose.yml'
+        ENV_COMPOSE = "docker-compose.${params.BUILD_ENVIRONMENT}.yml"
+        ENV_FILE = ".env.${params.BUILD_ENVIRONMENT}"
+        // Add timeout for health checks
+        HEALTH_CHECK_TIMEOUT = '300' // 5 minutes
+        HEALTH_CHECK_INTERVAL = '10' // 10 seconds
+        // Service repositories (only for services we build)
+        FRONTEND_REPO = 'https://github.com/fintrack-project/financial-tracker-frontend'
+        BACKEND_REPO = 'https://github.com/fintrack-project/financial-tracker-backend'
+        ETL_REPO = 'https://github.com/fintrack-project/financial-tracker-etl'
+        // Repository names
+        FRONTEND_REPO_NAME = 'financial-tracker-frontend'
+        BACKEND_REPO_NAME = 'financial-tracker-backend'
+        ETL_REPO_NAME = 'financial-tracker-etl'
+    }
+
+    parameters {
+        choice(
+            name: 'BUILD_ENVIRONMENT',
+            choices: ['dev', 'prod'],
+            description: 'Select environment to build for'
+        )
+        string(
+            name: 'VERSION_MAJOR',
+            defaultValue: '1',
+            description: 'Major version number'
+        )
+        string(
+            name: 'VERSION_MINOR',
+            defaultValue: '0',
+            description: 'Minor version number'
+        )
+        string(
+            name: 'VERSION_PATCH',
+            defaultValue: '0',
+            description: 'Patch version number'
+        )
+        choice(
+            name: 'SERVICES_TO_BUILD',
+            choices: ['all', 'frontend', 'backend', 'etl'],
+            description: 'Select services to build'
+        )
+        choice(
+            name: 'PUSH_IMAGES',
+            choices: ['yes', 'no'],
+            description: 'Push images to registry after build'
+        )
     }
 
     stages {
-        stage('Clone') {
+        stage('Validate Environment') {
             steps {
                 script {
-                    // Clone backend repository
-                    echo 'Cloning backend repository...'
-                    dir('backend') {
-                        git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-backend.git'
-                    }
-                    echo 'Backend repository cloned.'
-
-                    // Clone frontend repository
-                    echo 'Cloning frontend repository...'
-                    dir('frontend') {
-                        git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-frontend.git'
-                    }
-                    echo 'Frontend repository cloned.'
-
-                    // Clone ETL repository
-                    echo 'Cloning ETL repository...'
-                    dir('etl') {
-                        git branch: 'main', url: 'https://github.com/fintrack-project/financial-tracker-etl.git'
-                    }
-                    echo 'ETL repository cloned.'
-
-                    // Clone DB repository
-                    echo 'Cloning DB repository...'
-                    dir('db') {
-                        git branch: '1-deploy-this-app-with-minimum-viable-features', url: 'https://github.com/fintrack-project/financial-tracker-db.git'
-                    }
-                    echo 'DB repository cloned.'
-                }
-            }
-        }
-
-        stage('Build') {
-            steps {
-                script {
-                    // Log environment information
-                    echo '=== Environment Information ==='
-                    sh '''
-                        echo "Java Version:"
-                        java -version
-                        echo "\nMaven Version:"
-                        mvn -version
-                        echo "\nNode Version:"
-                        node -v
-                        echo "\nNPM Version:"
-                        npm -v
-                        echo "\nPython Version:"
-                        python3 --version
-                        echo "\nCurrent Directory:"
-                        pwd
-                        echo "\nDirectory Contents:"
-                        ls -la
-                        echo "\nJAVA_HOME:"
-                        echo $JAVA_HOME
-                    '''
+                    echo "Current branch: ${BRANCH_NAME}"
+                    echo "Build environment: ${params.BUILD_ENVIRONMENT}"
                     
-                    // Build backend
-                    dir('backend') {
-                        echo '=== Building Backend ==='
-                        echo 'Current Directory:'
-                        sh 'pwd'
-                        echo 'Directory Contents:'
-                        sh 'ls -la'
-                        echo 'Checking pom.xml content:'
-                        sh 'cat pom.xml | grep -A 5 "<properties>"'
-                        echo 'Building with Maven...'
-                        sh 'mvn clean package -Dmaven.compiler.source=21 -Dmaven.compiler.target=21 -Dmaven.compiler.release=21'
-                        echo 'Backend build completed.'
+                    // For infrastructure repository, we allow any branch for development
+                    // and only restrict production builds to main branch
+                    if (params.BUILD_ENVIRONMENT == 'prod' && BRANCH_NAME != 'main') {
+                        error "Production builds can only be triggered from main branch"
                     }
-                    // Build frontend
-                    dir('frontend') {
-                        echo '=== Building Frontend ==='
-                        echo 'Current Directory:'
-                        sh 'pwd'
-                        echo 'Directory Contents:'
-                        sh 'ls -la'
-                        echo 'Installing dependencies...'
-                        sh 'npm install'
-                        echo 'Building frontend...'
-                        sh 'npm run build'
-                        echo 'Frontend build completed.'
+                    
+                    // Verify required files exist
+                    echo "Checking for ${BASE_COMPOSE}..."
+                    if (!fileExists(BASE_COMPOSE)) {
+                        error "Base docker-compose file ${BASE_COMPOSE} not found"
                     }
-                    // Setup ETL
-                    dir('etl') {
-                        echo '=== Setting up ETL ==='
-                        echo 'Current Directory:'
-                        sh 'pwd'
-                        echo 'Directory Contents:'
-                        sh 'ls -la'
-                        echo 'Creating Python virtual environment...'
-                        sh 'python3 -m venv venv'
-                        echo 'Installing Python dependencies...'
-                        sh '. venv/bin/activate && pip install -r requirements.txt'
-                        echo 'ETL setup completed.'
+                    echo "Checking for ${ENV_COMPOSE}..."
+                    if (!fileExists(ENV_COMPOSE)) {
+                        error "Environment docker-compose file ${ENV_COMPOSE} not found"
+                    }
+
+                    // Get environment file from Jenkins credentials
+                    def credentialId = "env-${params.BUILD_ENVIRONMENT}-file"
+                    echo "Attempting to access credential: ${credentialId}"
+                    try {
+                        withCredentials([file(credentialsId: credentialId, variable: 'ENV_FILE_CONTENT')]) {
+                            // Create the .env file in the workspace
+                            sh """
+                                cp \$ENV_FILE_CONTENT ${ENV_FILE}
+                                chmod 600 ${ENV_FILE}
+                            """
+                            echo "Successfully created ${ENV_FILE} from credentials"
+                        }
+                    } catch (Exception e) {
+                        error "Failed to access credential ${credentialId}: ${e.message}"
                     }
                 }
             }
         }
 
-        stage('Dockerize - Build Images') {
+        stage('Build Images') {
             steps {
                 script {
-                    // Dockerize backend
-                    dir('backend') {
-                        echo 'Dockerizing backend $QUAY_REPO_BACKEND:latest...'
-                        sh 'docker build -t $QUAY_REPO_BACKEND:latest .'
-                        echo 'Backend Dockerized.'
-                    }
-                    // Dockerize frontend
-                    dir('frontend') {
-                        echo 'Dockerizing frontend $QUAY_REPO_FRONTEND:latest...'
-                        sh 'docker build -t $QUAY_REPO_FRONTEND:latest .'
-                        echo 'Frontend Dockerized.'
-                    }
-                    // Dockerize ETL
-                    dir('etl') {
-                        echo 'Dockerizing ETL $QUAY_REPO_ETL:latest...'
-                        sh 'docker build -t $QUAY_REPO_ETL:latest .'
-                        echo 'ETL Dockerized.'
-                    }
-                    // Dockerize DB
-                    dir('db') {
-                        echo 'Dockerizing DB $QUAY_REPO_DB:latest...'
-                        sh 'docker build -t $QUAY_REPO_DB:latest .'
-                        echo 'DB Dockerized.'
+                    def fullVersion = "${params.VERSION_MAJOR}.${params.VERSION_MINOR}.${params.VERSION_PATCH}-${params.BUILD_ENVIRONMENT}-${BUILD_NUMBER}"
+                    def servicesToBuild = params.SERVICES_TO_BUILD == 'all' ? SERVICES.split(',') : [params.SERVICES_TO_BUILD]
+                    def targetBranch = params.BUILD_ENVIRONMENT == 'prod' ? 'main' : 'dev'
+
+                    servicesToBuild.each { service ->
+                        echo "Building ${service} for ${params.BUILD_ENVIRONMENT} environment from ${targetBranch} branch"
+                        
+                        // Get repository URL and name based on service
+                        def repoUrl
+                        def repoName
+                        switch(service) {
+                            case 'frontend':
+                                repoUrl = FRONTEND_REPO
+                                repoName = FRONTEND_REPO_NAME
+                                break
+                            case 'backend':
+                                repoUrl = BACKEND_REPO
+                                repoName = BACKEND_REPO_NAME
+                                break
+                            case 'etl':
+                                repoUrl = ETL_REPO
+                                repoName = ETL_REPO_NAME
+                                break
+                            default:
+                                error "Unknown service: ${service}"
+                        }
+                        
+                        // Clone the service repository with the appropriate branch
+                        sh """
+                            rm -rf ../financial-tracker-${service}
+                            git clone -b ${targetBranch} ${repoUrl} ../financial-tracker-${service}
+                        """
+                        
+                        // Build command with appropriate tags
+                        def buildCmd = """
+                            docker build -t ${DOCKER_REGISTRY}/${repoName}:${fullVersion} \
+                                         -t ${DOCKER_REGISTRY}/${repoName}:${params.BUILD_ENVIRONMENT}-latest \
+                                         ../financial-tracker-${service}
+                        """
+                        
+                        // Add 'latest' tag for production builds
+                        if (params.BUILD_ENVIRONMENT == 'prod') {
+                            buildCmd += """
+                                && docker tag ${DOCKER_REGISTRY}/${repoName}:${fullVersion} ${DOCKER_REGISTRY}/${repoName}:latest
+                            """
+                        }
+                        
+                        sh buildCmd
                     }
                 }
             }
         }
 
-        stage('Push Docker Images to Quay') {
+        stage('Push Images') {
+            when {
+                expression { params.PUSH_IMAGES == 'yes' }
+            }
             steps {
                 script {
+                    def fullVersion = "${params.VERSION_MAJOR}.${params.VERSION_MINOR}.${params.VERSION_PATCH}-${params.BUILD_ENVIRONMENT}-${BUILD_NUMBER}"
+                    def servicesToPush = params.SERVICES_TO_BUILD == 'all' ? SERVICES.split(',') : [params.SERVICES_TO_BUILD]
+
                     withCredentials([usernamePassword(credentialsId: 'quay-credentials', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD')]) {
-                        echo 'Logging in to Quay.io...'
+                        // Login to Docker registry using a more secure method
                         sh '''
-                            echo $QUAY_PASSWORD | docker login quay.io --username $QUAY_USERNAME --password-stdin
+                            # Remove any existing credentials
+                            rm -f $HOME/.docker/config.json
+                            
+                            # Login to Quay.io
+                            echo "$QUAY_PASSWORD" | docker login quay.io --username "$QUAY_USERNAME" --password-stdin
+                            
+                            # Debug information
+                            echo "Current user: $(whoami)"
+                            echo "Docker config location: $HOME/.docker/config.json"
+                            echo "Docker config permissions: $(ls -l $HOME/.docker/config.json)"
                         '''
-
-                        // Push backend image
-                        echo 'Pushing backend image to $QUAY_REPO_BACKEND:latest...'
-                        sh 'docker push $QUAY_REPO_BACKEND:latest'
-                        echo 'Backend image pushed.'
-
-                        // Push frontend image
-                        echo 'Pushing frontend image to $QUAY_REPO_FRONTEND:latest...'
-                        sh 'docker push $QUAY_REPO_FRONTEND:latest'
-                        echo 'Frontend image pushed.'
-
-                        // Push ETL image
-                        echo 'Pushing ETL image to $QUAY_REPO_ETL:latest...'
-                        sh 'docker push $QUAY_REPO_ETL:latest'
-                        echo 'ETL image pushed.'
-
-                        // Push DB image
-                        echo 'Pushing DB image to $QUAY_REPO_DB:latest...'
-                        sh 'docker push $QUAY_REPO_DB:latest'
-                        echo 'DB image pushed.'
+                        
+                        servicesToPush.each { service ->
+                            // Get repository name based on service
+                            def repoName
+                            switch(service) {
+                                case 'frontend':
+                                    repoName = FRONTEND_REPO_NAME
+                                    break
+                                case 'backend':
+                                    repoName = BACKEND_REPO_NAME
+                                    break
+                                case 'etl':
+                                    repoName = ETL_REPO_NAME
+                                    break
+                                default:
+                                    error "Unknown service: ${service}"
+                            }
+                            
+                            echo "Pushing ${service} (${repoName}) for ${params.BUILD_ENVIRONMENT} environment"
+                            try {
+                                // First try to pull the repository to ensure it exists
+                                sh """
+                                    # Try to pull the repository first
+                                    docker pull ${DOCKER_REGISTRY}/${repoName}:latest || true
+                                    
+                                    # Now try to push
+                                    docker push ${DOCKER_REGISTRY}/${repoName}:${fullVersion}
+                                    docker push ${DOCKER_REGISTRY}/${repoName}:${params.BUILD_ENVIRONMENT}-latest
+                                """
+                                
+                                // Push 'latest' tag for production builds
+                                if (params.BUILD_ENVIRONMENT == 'prod') {
+                                    sh """
+                                        docker push ${DOCKER_REGISTRY}/${repoName}:latest
+                                    """
+                                }
+                            } catch (Exception e) {
+                                error """
+                                    Failed to push ${service} (${repoName}) images: ${e.message}
+                                    
+                                    Please verify:
+                                    1. The repository exists in Quay.io (create it manually if needed)
+                                    2. The Jenkins bot user has write access to the repository
+                                    3. The repository name matches exactly: ${DOCKER_REGISTRY}/${repoName}
+                                    
+                                    Steps to fix:
+                                    1. Go to https://quay.io/repository/johnkim1/${repoName}
+                                    2. Go to repository settings
+                                    3. Under 'User and Robot Permissions'
+                                    4. Add robot account 'johnkim1+jenkins_bot' with Write permissions
+                                """
+                            }
+                        }
                     }
                 }
             }
         }
+    }
 
-        stage('Test') {
-            steps {
-                echo 'Testing...'
+    post {
+        success {
+            script {
+                def fullVersion = "${params.VERSION_MAJOR}.${params.VERSION_MINOR}.${params.VERSION_PATCH}-${params.BUILD_ENVIRONMENT}-${BUILD_NUMBER}"
+                echo "Successfully built images for ${params.BUILD_ENVIRONMENT} environment"
+                echo "Version: ${fullVersion}"
+                if (params.PUSH_IMAGES == 'yes') {
+                    echo "Images were pushed to registry"
+                } else {
+                    echo "Images were built but not pushed to registry"
+                }
             }
         }
-
-        stage('Deploy') {
-            steps {
-                script {
-                    echo 'Creating Docker network if it does not exist...'
-                    sh '''
-                        if ! docker network ls | grep -q ${DATABASE_NETWORK_NAME}; then
-                            docker network create ${DATABASE_NETWORK_NAME}
-                        fi
-                    '''
-                    
-                    echo 'Deploying services...'
-                    sh 'docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d'
-                }
+        failure {
+            script {
+                echo "Failed to build or push services"
+            }
+        }
+        always {
+            // Cleanup
+            script {
+                sh """
+                    docker system prune -f
+                """
             }
         }
     }

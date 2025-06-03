@@ -26,3 +26,21 @@ logs/
 # System files
 .DS_Store
 Thumbs.db
+
+# Quay.io auth files
+*-auth.json
+johnkim1-jenkins-bot-auth.json
+
+# Environment files
+.env*
+!.env.example
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: postgres
-        image: postgres:latest
+        image: postgres:17.5
         env:
         - name: POSTGRES_DB
           value: ${spring.datasource.url}
