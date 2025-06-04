@@ -145,10 +145,9 @@ pipeline {
 
                         // Add 'latest' tag for production builds
                         if (params.BUILD_ENVIRONMENT == 'prod') {
-                            buildCmd = """
+                            sh """
                                 docker tag ${DOCKER_REGISTRY}/${repoName}:${fullVersion} ${DOCKER_REGISTRY}/${repoName}:latest
                             """
-                            sh buildCmd
                         }
                     }
                 }
