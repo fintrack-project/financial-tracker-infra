@@ -197,12 +197,7 @@ pipeline {
                             
                             echo "Pushing ${service} (${repoName}) for ${params.BUILD_ENVIRONMENT} environment"
                             try {
-                                // First try to pull the repository to ensure it exists
                                 sh """
-                                    # Try to pull the repository first
-                                    docker pull ${DOCKER_REGISTRY}/${repoName}:latest || true
-                                    
-                                    # Now try to push
                                     docker push ${DOCKER_REGISTRY}/${repoName}:${fullVersion}
                                     docker push ${DOCKER_REGISTRY}/${repoName}:${params.BUILD_ENVIRONMENT}-latest
                                 """
