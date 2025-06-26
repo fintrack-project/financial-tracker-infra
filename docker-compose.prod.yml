@@ -2,20 +2,22 @@ services:
   frontend:
     build:
       context: ../financial-tracker-frontend
-      target: prod
+      target: prod  # Uses nginx stage, not Node.js dev server
     ports:
-      - "3000:3000"
+      - "80:80"   # HTTP
+      - "443:443" # HTTPS
     volumes:
-      - ../financial-tracker-frontend:/app
-      - /app/node_modules
+      # SSL certificates - only needed for production HTTPS
+      # Development environment uses React dev server on port 3000 (no SSL needed)
+      - ../financial-tracker-frontend/ssl-certificates/nginx-selfsigned.crt:/etc/ssl/certs/nginx-selfsigned.crt:ro
+      - ../financial-tracker-frontend/ssl-certificates/nginx-selfsigned.key:/etc/ssl/private/nginx-selfsigned.key:ro
     environment:
-      - NODE_ENV=development
-      - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true
-      - REACT_APP_API_URL=http://backend:8080
+      - NODE_ENV=production
+      - REACT_APP_API_URL=https://johnmjkim.com:8080
+    # No volumes needed: nginx serves pre-built static files
+    # No command needed: uses nginx default CMD from Dockerfile
     depends_on:
       - backend
-    command: ["sh", "-c", "echo 'REACT_APP_API_URL: $REACT_APP_API_URL'; npm start"]
     networks:
       - fintrack-network
   backend:
@@ -25,7 +27,6 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ../financial-tracker-backend:/app
       - ../financial-tracker-backend/src/main/resources/firebase-service-account.json:/app/src/main/resources/firebase-service-account.json:ro
       - ../financial-tracker-db/migrations:/app/migrations:ro
     environment:
