@@ -1,23 +1,37 @@
 services:
+  swag:
+    image: lscr.io/linuxserver/swag
+    container_name: swag
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+      - URL=johnmjkim.com
+      - SUBDOMAINS=fintrack
+      - VALIDATION=http
+      - STAGING=true
+      - EMAIL=admin@johnmjkim.com
+    volumes:
+      - ./swag:/config
+    ports:
+      - 80:80
+      - 443:443
+    restart: unless-stopped
+    networks:
+      - fintrack-network
   frontend:
     build:
       context: ../financial-tracker-frontend
-      target: prod  # Uses nginx stage, not Node.js dev server
+      target: prod  # Uses simplified prod stage (no nginx)
     ports:
-      - "80:80"   # HTTP
-      - "443:443" # HTTPS
-    volumes:
-      # SSL certificates - only needed for production HTTPS
-      # Development environment uses React dev server on port 3000 (no SSL needed)
-      - ./nginx/ssl-certificates/nginx-selfsigned.crt:/etc/ssl/certs/nginx-selfsigned.crt:ro
-      - ./nginx/ssl-certificates/nginx-selfsigned.key:/etc/ssl/private/nginx-selfsigned.key:ro
-      # Nginx configuration - moved to infra repo for centralized management
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - "3000:3000"  # Internal only - SWAG handles external access
     environment:
       - NODE_ENV=production
-      - REACT_APP_API_URL=https://johnmjkim.com:8080
-    # No volumes needed: nginx serves pre-built static files
-    # No command needed: uses nginx default CMD from Dockerfile
+      - REACT_APP_API_URL=https://fintrack.johnmjkim.com/api
+    # No SSL volumes needed - SWAG handles SSL certificates
+    # No nginx config needed - SWAG handles reverse proxy
     depends_on:
       - backend
     networks:

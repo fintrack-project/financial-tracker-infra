@@ -6,6 +6,7 @@ ci-cd/application-ci.properties
 
 # SSL Certificates and Private Keys
 nginx/ssl-certificates/
+swag/
 **/*.crt
 **/*.key
 **/*.pem
