@@ -4,6 +4,14 @@ application.properties
 # CI/CD Configuration
 ci-cd/application-ci.properties
 
+# SSL Certificates and Private Keys
+nginx/ssl-certificates/
+**/*.crt
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
+
 # IDE files
 .idea/
 .vscode/
