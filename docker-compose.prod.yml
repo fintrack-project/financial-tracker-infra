@@ -1,21 +1,39 @@
 services:
+  swag:
+    image: lscr.io/linuxserver/swag
+    container_name: swag
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+      - URL=johnmjkim.com
+      - SUBDOMAINS=fintrack
+      - VALIDATION=http
+      - STAGING=true
+      - EMAIL=admin@johnmjkim.com
+    volumes:
+      - ./swag:/config
+    ports:
+      - 80:80
+      - 443:443
+    restart: unless-stopped
+    networks:
+      - fintrack-network
   frontend:
     build:
       context: ../financial-tracker-frontend
-      target: prod
+      target: prod  # Uses simplified prod stage (no nginx)
     ports:
-      - "3000:3000"
-    volumes:
-      - ../financial-tracker-frontend:/app
-      - /app/node_modules
+      - "3000:3000"  # Internal only - SWAG handles external access
     environment:
-      - NODE_ENV=development
-      - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true
-      - REACT_APP_API_URL=http://backend:8080
+      - NODE_ENV=production
+      - REACT_APP_API_URL=https://fintrack.johnmjkim.com/api
+    # No SSL volumes needed - SWAG handles SSL certificates
+    # No nginx config needed - SWAG handles reverse proxy
     depends_on:
       - backend
-    command: ["sh", "-c", "echo 'REACT_APP_API_URL: $REACT_APP_API_URL'; npm start"]
     networks:
       - fintrack-network
   backend:
@@ -25,7 +43,6 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ../financial-tracker-backend:/app
       - ../financial-tracker-backend/src/main/resources/firebase-service-account.json:/app/src/main/resources/firebase-service-account.json:ro
       - ../financial-tracker-db/migrations:/app/migrations:ro
     environment:
