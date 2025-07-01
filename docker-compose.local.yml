@@ -10,54 +10,10 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
-      - REACT_APP_API_URL=http://backend:8080
+      - REACT_APP_API_URL=http://localhost:8080  # Points to local backend
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
     command: ["sh", "-c", "echo 'REACT_APP_API_URL: $REACT_APP_API_URL'; npm start"]
-    networks:
-      - fintrack-network
-  backend:
-    build:
-      context: ../financial-tracker-backend
-      target: dev
-    ports:
-      - "8080:8080"
-    volumes:
-      - ../financial-tracker-backend:/app
-      - ../financial-tracker-backend/src/main/resources/firebase-service-account.json:/app/src/main/resources/firebase-service-account.json:ro
-      - ../financial-tracker-db/migrations:/app/migrations:ro
-    environment:
-      SPRING_PROFILES_ACTIVE: dev
-      SPRING_DATASOURCE_URL: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_INTERNAL_PORT}/${DATABASE_NAME}?currentSchema=${DATABASE_SCHEMA_NAME}
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
-      SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: PLAINTEXT
-      # Mail Configuration (Development)
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_USERNAME: 
-      SMTP_PASSWORD: 
-      SMTP_AUTH: false
-      SMTP_STARTTLS: false
-      # Flyway Configuration
-      FLYWAY_LOCATIONS: filesystem:/app/migrations
-      SPRING_FLYWAY_BASELINE_ON_MIGRATE: true
-      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: true
-      SPRING_FLYWAY_CLEAN_DISABLED: true
-      SPRING_FLYWAY_SCHEMAS: ${DATABASE_SCHEMA_NAME}
-      SPRING_FLYWAY_DEFAULT_SCHEMA: ${DATABASE_SCHEMA_NAME}
-      SPRING_FLYWAY_VALIDATE_MIGRATION_NAMING: true
-      SPRING_FLYWAY_OUT_OF_ORDER: false
-      SPRING_FLYWAY_IGNORE_MIGRATION_PATTERNS: "*:missing,*:future"
-      # Stripe Configuration (Development)
-      STRIPE_SECRET_KEY: ${STRIPE_TEST_SECRET_KEY}
-      STRIPE_PUBLISHABLE_KEY: ${STRIPE_TEST_PUBLISHABLE_KEY}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_TEST_WEBHOOK_SECRET}
-      # Firebase Configuration (Development)
-      FIREBASE_SERVICE_ACCOUNT_PATH: /app/src/main/resources/firebase-service-account.json
-      # Application URLs
-      APP_BASE_URL: ${FRONTEND_URL}
     networks:
       - fintrack-network
   etl:
