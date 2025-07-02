@@ -52,6 +52,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
       SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: PLAINTEXT
+      # Valkey Configuration
+      VALKEY_HOST: ${VALKEY_HOST:valkey}
+      VALKEY_INTERNAL_PORT: ${VALKEY_INTERNAL_PORT:6379}
       # Mail Configuration
       SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT}
@@ -85,6 +88,8 @@ services:
       zookeeper:
         condition: service_healthy
       mailhog:
+        condition: service_healthy
+      valkey:
         condition: service_healthy
     networks:
       - fintrack-network
@@ -165,6 +170,34 @@ services:
       retries: 5
     networks:
       - fintrack-network
+  valkey:
+    image: valkey/valkey:latest
+    ports:
+      - "${VALKEY_PORT:-6379}:6379"
+    volumes:
+      - valkey_data:/data
+    command: >
+      valkey-server 
+      --appendonly yes 
+      --maxmemory 1gb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --bind 0.0.0.0
+      --protected-mode no
+    environment:
+      - VALKEY_LOGLEVEL=${VALKEY_LOGLEVEL:-warning}
+    networks:
+      - fintrack-network
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
 
 volumes:
-  postgres_data: 
+  postgres_data:
+  valkey_data: 
