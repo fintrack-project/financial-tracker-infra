@@ -5,7 +5,7 @@ usage() {
     echo "Usage:"
     echo "  ./start.sh [dev|prod|local]                    # Start all services in specified environment"
     echo "  ./start.sh [dev|prod|local] [service1 service2] # Start specific services in specified environment"
-    echo "  ./start.sh [dev|prod|local] infrastructure      # Start only infrastructure services (DB, Kafka, Zookeeper, MailHog, ETL)"
+    echo "  ./start.sh [dev|prod|local] infrastructure      # Start only infrastructure services (DB, Kafka, Zookeeper, MailHog, Valkey, ETL)"
     echo ""
     echo "Examples:"
     echo "  ./start.sh dev                           # Start all services in development"
@@ -52,7 +52,7 @@ start_infrastructure() {
     
     # Start infrastructure services
     echo "Starting infrastructure services..."
-    $COMPOSE_CMD up -d db kafka zookeeper mailhog etl
+    $COMPOSE_CMD up -d db kafka zookeeper mailhog valkey etl
     
     echo ""
     echo "=== Infrastructure Services Started ==="
@@ -61,13 +61,14 @@ start_infrastructure() {
     echo "Zookeeper: localhost:2181"
     echo "MailHog SMTP: localhost:1025"
     echo "MailHog Web UI: http://localhost:8025"
+    echo "Valkey Cache: localhost:6379"
     echo ""
     echo "You can now run:"
     echo "- Frontend: cd ../financial-tracker-frontend && npm start"
     echo "- Backend: cd ../financial-tracker-backend && ./mvnw spring-boot:run"
     echo ""
     echo "To stop infrastructure services:"
-    echo "$COMPOSE_CMD down db kafka zookeeper mailhog etl"
+    echo "$COMPOSE_CMD down db kafka zookeeper mailhog valkey etl"
 }
 
 # Check if infrastructure mode is requested
