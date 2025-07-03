@@ -5,7 +5,7 @@ usage() {
     echo "Usage:"
     echo "  ./stop.sh [dev|prod|local]                    # Stop all services in specified environment"
     echo "  ./stop.sh [dev|prod|local] [service1 service2] # Stop specific services in specified environment"
-    echo "  ./stop.sh [dev|prod|local] infrastructure      # Stop only infrastructure services (DB, Kafka, Zookeeper, MailHog, ETL)"
+    echo "  ./stop.sh [dev|prod|local] infrastructure      # Stop only infrastructure services (DB, Kafka, Zookeeper, MailHog, Valkey, ETL)"
     echo ""
     echo "Examples:"
     echo "  ./stop.sh dev                           # Stop all services in development"
@@ -42,7 +42,7 @@ stop_infrastructure() {
     
     # Stop infrastructure services
     echo "Stopping infrastructure services..."
-    $COMPOSE_CMD stop db kafka zookeeper mailhog etl
+    $COMPOSE_CMD stop db kafka zookeeper mailhog valkey etl
     
     echo ""
     echo "=== Infrastructure Services Stopped ==="
