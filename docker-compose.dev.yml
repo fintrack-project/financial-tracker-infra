@@ -34,10 +34,10 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
       SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: PLAINTEXT
       # Valkey Configuration
-      VALKEY_HOST: ${VALKEY_HOST:valkey}
-      VALKEY_INTERNAL_PORT: ${VALKEY_INTERNAL_PORT:6379}
-      # Mail Configuration (Development)
-      SMTP_HOST: ${SMTP_HOST}
+      VALKEY_HOST: ${VALKEY_HOST:-valkey}
+      VALKEY_INTERNAL_PORT: ${VALKEY_INTERNAL_PORT:-6379}
+      # Mail Configuration (Development - MailHog)
+      SMTP_HOST: mailhog
       SMTP_PORT: ${SMTP_PORT}
       SMTP_USERNAME: 
       SMTP_PASSWORD: 
@@ -69,6 +69,8 @@ services:
       zookeeper:
         condition: service_healthy
       valkey:
+        condition: service_healthy
+      mailhog:
         condition: service_healthy
     networks:
       - fintrack-network
