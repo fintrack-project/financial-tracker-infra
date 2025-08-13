@@ -86,8 +86,8 @@ pipeline {
                         withCredentials([file(credentialsId: credentialId, variable: 'ENV_FILE_CONTENT')]) {
                             // Create the .env file in the workspace
                             sh """
-                                cat \$ENV_FILE_CONTENT > ${ENV_FILE}
-                                chmod 600 ${ENV_FILE}
+                                cp "\$ENV_FILE_CONTENT" "${ENV_FILE}"
+                                chmod 600 "${ENV_FILE}"
                             """
                             echo "Successfully created ${ENV_FILE} from credentials"
                         }
